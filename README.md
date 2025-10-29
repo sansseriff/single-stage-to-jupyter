@@ -61,7 +61,8 @@ This will update `dl-util/dl.sh`, `dl-util/index.html`, `dl-util/repo_url.txt`, 
 ```zsh
 git add .
 git commit -m "Configure Pages one-liner and bootstrap files"
-git push origin master
+# Push main (default branch)
+git push -u origin main
 ```
 
 6. Wait for the GitHub Actions workflow ("Deploy dl.sh to GitHub Pages") to run and publish `dl-util/` to Pages. Once it finishes, your `dl.sh` will be available at:
