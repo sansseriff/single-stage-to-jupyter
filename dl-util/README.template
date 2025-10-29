@@ -8,6 +8,8 @@ Brief description: Replace this paragraph with a short overview of your dataset 
 
 Run this in a terminal to clone and set up the project:
 
+⚠️ Warning: Only use single line installers like these if you trust the creator of this repository. 
+
 macOS/Linux (curl):
 
 ```zsh
@@ -24,6 +26,27 @@ Windows (PowerShell):
 
 ```powershell
 __WIN_POWERSHELL_CMD__
+```
+
+### Security: Verify before running
+
+To verify the integrity of `dl.sh` before running it:
+
+```zsh
+# Download the script without executing
+curl -o dl.sh __RAW_BASE_URL__/dl.sh
+
+# Verify SHA256 hash matches the one below
+shasum -a 256 dl.sh
+
+# Inspect the script content
+cat dl.sh
+
+# Inspect what will be installed
+curl -s __RAW_BASE_URL__/dl-util/install_and_sync.sh | less
+
+# If everything looks good, run it
+sh dl.sh
 ```
 
 Integrity (SHA256 of dl.sh):
