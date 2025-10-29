@@ -35,6 +35,8 @@ GH_USER=""
 REPO_NAME=""
 CUSTOM_DOMAIN=""
 ASSUME_YES=false
+REGEN_README=false
+STATE_FILE="dl-util/.s2j-state.json"
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
@@ -43,6 +45,7 @@ while [[ $# -gt 0 ]]; do
 		--repo) REPO_NAME=${2:-}; shift 2 ;;
 		--domain) CUSTOM_DOMAIN=${2:-}; shift 2 ;;
 		-y|--yes) ASSUME_YES=true; shift ;;
+		--regen-readme) REGEN_README=true; shift ;;
 		*) echo "Unknown argument: $1"; usage; exit 1 ;;
 	esac
 done
@@ -221,12 +224,97 @@ compute_sha() {
 	fi
 }
 
+is_bootstrapped() {
+	[[ -f "$STATE_FILE" ]]
+}
+
+write_state() {
+	# Write or update bootstrap state with current metadata
+	ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+	cat > "$STATE_FILE" <<JSON
+{
+  "timestamp": "$ts",
+  "gh_user": "$GH_USER",
+  "repo_name": "$REPO_NAME",
+  "repo_url": "$REPO_URL",
+  "pages_base": "$PAGES_BASE",
+  "dl_sh_sha256": "$SHA256_DL_SH"
+}
+JSON
+}
+
+maybe_replace_readme() {
+	# If already bootstrapped and not forcing regeneration, only update the Quick install block
+	if is_bootstrapped && ! $REGEN_README; then
+		echo "[info] Detected bootstrap state at $STATE_FILE — updating Quick install block only."
+		update_readme_block
+		return
+	fi
+
+	local do_short=""
+	if $ASSUME_YES; then
+		do_short="y"
+	else
+		printf "\nReplace the template README with a short project README (and save the template as README.template.md)? [Y/n]: "
+		read do_short
+	fi
+
+	case "$do_short" in
+		n|N|no|No|NO)
+			echo "[info] Keeping the existing README and updating its Quick install block."
+			update_readme_block
+			;;
+		*)
+			echo "[info] Creating a short README and saving the template as README.template.md"
+			if [[ -f README.md ]]; then
+				if [[ -f README.template.md ]]; then
+					mv -f README.template.md README.template.md.bak
+				fi
+				mv README.md README.template.md
+			fi
+
+						cat > README.md <<EOF
+# ${REPO_NAME}
+
+Brief description: Replace this paragraph with a short overview of your dataset and experiment goals. Include links to data sources if public, and summarize the key questions you answer.
+
+## Quick install
+
+			<!-- QUICK_INSTALL_START -->
+
+			Run this in a terminal to clone and set up the project:
+
+				${DOWNLOAD_CMD}
+
+			Integrity (SHA256 of dl.sh):
+
+				${SHA256_DL_SH}
+
+			<!-- QUICK_INSTALL_END -->
+
+## Project notes
+
+- Data: Describe where data comes from and any preprocessing requirements.
+- Experiment: Outline the main analysis/experiment steps and expected outputs.
+- Environment: Dependencies are managed with uv (see install_and_sync.sh for details).
+
+## Next steps
+
+- Edit this README to document your specific analysis.
+- See the original template guide in 
+	README.template.md for advanced usage and maintenance tips.
+EOF
+			;;
+	esac
+}
+
 ensure_files_exist
 update_dl_sh
 write_repo_url_txt
 compute_sha
 rewrite_index_html
-update_readme_block
+maybe_replace_readme
+write_state
 
 printf "\nDone. Next steps:\n"
 printf "  1) Commit and push these changes to GitHub.\n"
