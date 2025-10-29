@@ -8,8 +8,22 @@ Brief description: Replace this paragraph with a short overview of your dataset 
 
 Run this in a terminal to clone and set up the project:
 
+macOS/Linux (curl):
+
 ```zsh
 __DOWNLOAD_CMD__
+```
+
+macOS/Linux (wget):
+
+```zsh
+__WGET_CMD__
+```
+
+Windows (PowerShell):
+
+```powershell
+__WIN_POWERSHELL_CMD__
 ```
 
 Integrity (SHA256 of dl.sh):

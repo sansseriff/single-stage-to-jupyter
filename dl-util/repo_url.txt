@@ -1,1 +1,1 @@
-https://github.com/pretend-user/pretend-repo.git
+https://github.com/testuser/testrepo.git

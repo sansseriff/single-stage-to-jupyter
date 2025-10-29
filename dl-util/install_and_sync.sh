@@ -18,11 +18,15 @@ if ! command -v uv >/dev/null 2>&1; then
             echo "[error] Failed to install uv via curl. Please check your network or permissions.";
             exit 1;
         }
+        # Make uv available immediately in this shell session
+        export PATH="$HOME/.local/bin:$PATH"
     elif command -v wget >/dev/null 2>&1; then
         wget -qO- https://astral.sh/uv/install.sh | sh || {
             echo "[error] Failed to install uv via wget. Please check your network or permissions.";
             exit 1;
         }
+        # Make uv available immediately in this shell session
+        export PATH="$HOME/.local/bin:$PATH"
     else
         echo "[error] Neither curl nor wget is available to install uv. Please install one and re-run.";
         exit 1;
