@@ -1,8 +1,10 @@
 ![single-stage](./dl-util/template_images/single-stage.png)
 
-This is a starter repository that makes it easy for others to download and run your code after you have commited it to github.
+This is a starter repository that makes it easy for others to download and run your python code after you have commited it to github.
 
-It uses github pages to host an initial dowload script, and the UV package manager for easy dependency installation.
+It uses github pages to host an initial dowload script, and the [uv package & project manager](https://docs.astral.sh/uv/) for easy dependency installation.
+
+Though it's set up to initialize and lauch a jupyter lab instance, its generally useful for sending anyone some python code you want them to run, with minimal
 
 # How this works
 
@@ -81,6 +83,17 @@ and your README will show the one-liner such as:
 ```
 curl -fsSL https://<your-github-username>.github.io/<your-new-repo>/dl.sh | bash
 ```
+
+## Using uv for proper dependency managment
+
+You can learn more [here](https://docs.astral.sh/uv/guides/projects/) about how to work on python projects with uv so that all your dependencies are tracked and easily installable by other users of your code.
+
+### uv cheatsheet:
+
+- Add a python package with `uv add <package-name>`
+- Create a local virtual environment `.venv` from the `uv.lock` and `pyproject.toml` files.
+- Run a python file using the local environment with `uv run <python-file>`
+- Run a jupyter lab server using the local environment with `uv run --with jupyter jupyter lab`
 
 ## Integrity check
 
