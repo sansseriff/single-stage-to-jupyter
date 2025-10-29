@@ -18,10 +18,6 @@ Running this command will clone the repo, install dependencies, and ask if you'd
 
 <!-- QUICK_INSTALL_END -->
 
-# How to use this template
-
-1. In the upper right corner of this github page, press "Use this template"
-
 ## Getting started (for template users)
 
 Follow these steps to create your own one-line-downloadable analysis repository from this template.
@@ -57,7 +53,7 @@ chmod +x initialize_repo.sh
 
 This will walk you through a few steps to customize the link to your repo.
 
-You may also use a lone-liner with all your details entered:
+You may also use a one-liner with all your details entered:
 
 ```zsh
 ./initialize_repo.sh --user <your-github-username> --repo <your-new-repo> [--domain your.custom.domain] --yes
