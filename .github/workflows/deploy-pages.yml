@@ -25,14 +25,16 @@ jobs:
       - name: Prepare Pages content
         run: |
           mkdir -p dl-util
-          # If a CNAME exists at repo root, include it in the published site
-          if [ -f CNAME ]; then
+          # Prefer CNAME from dl-util/ (template keeps it here). Fallback to repo root if present.
+          if [ -f dl-util/CNAME ]; then
+            echo "Using CNAME from dl-util/"
+          elif [ -f CNAME ]; then
+            echo "Copying CNAME from repo root into dl-util/"
             cp CNAME dl-util/CNAME
           fi
-          # Ensure GitHub Pages doesn't run Jekyll processing
-          if [ -f .nojekyll ]; then
-            cp .nojekyll dl-util/.nojekyll
-          else
+          # Ensure GitHub Pages doesn't run Jekyll processing (keep .nojekyll in dl-util/)
+          if [ ! -f dl-util/.nojekyll ]; then
+            echo "Creating dl-util/.nojekyll"
             touch dl-util/.nojekyll
           fi
 
