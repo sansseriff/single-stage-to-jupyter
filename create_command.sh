@@ -1,0 +1,220 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ensure we're running under bash even if invoked as `sh create_command.sh`
+if [ -z "${BASH_VERSION:-}" ]; then
+	exec bash "$0" "$@"
+fi
+
+# Bootstrap this template for your own GitHub repo and GitHub Pages URL.
+#
+# What this does:
+# - Detects or asks for your GitHub username and repo name
+# - Optionally uses a custom domain from CNAME (or a --domain flag)
+# - Sets the REPO_URL inside dl-util/dl.sh so it clones YOUR repo
+# - Rewrites dl-util/index.html with links and instructions
+# - Updates README.md "Quick install" section with the correct curl one-liner
+# - Writes dl-util/repo_url.txt for reference
+#
+# After running this, push to GitHub. The included GitHub Action will publish
+# dl-util/ to GitHub Pages. Set Pages to "Deploy from GitHub Actions" if prompted.
+
+usage() {
+	cat <<'USAGE'
+Usage: ./create_command.sh [--user <github_user>] [--repo <repo_name>] [--domain <custom.domain>] [--yes]
+
+Options:
+	--user     GitHub username or org (default: inferred from git remote if available)
+	--repo     Repository name (default: inferred from git remote or current folder)
+	--domain   Custom domain to use for GitHub Pages (overrides CNAME / github.io URL)
+	--yes      Non-interactive; accept inferred defaults without prompting
+USAGE
+}
+
+GH_USER=""
+REPO_NAME=""
+CUSTOM_DOMAIN=""
+ASSUME_YES=false
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		-h|--help) usage; exit 0 ;;
+		--user) GH_USER=${2:-}; shift 2 ;;
+		--repo) REPO_NAME=${2:-}; shift 2 ;;
+		--domain) CUSTOM_DOMAIN=${2:-}; shift 2 ;;
+		-y|--yes) ASSUME_YES=true; shift ;;
+		*) echo "Unknown argument: $1"; usage; exit 1 ;;
+	esac
+done
+
+# Infer from git remote if possible
+infer_from_git() {
+	if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+		local url
+		url=$(git config --get remote.origin.url || true)
+		# Supported forms: https://github.com/user/repo.git or git@github.com:user/repo.git
+		if [[ -n "$url" ]]; then
+			if [[ "$url" =~ github.com[:/]{1}([^/]+)/([^/.]+) ]]; then
+				GH_USER=${GH_USER:-"${BASH_REMATCH[1]}"}
+				REPO_NAME=${REPO_NAME:-"${BASH_REMATCH[2]}"}
+			fi
+		fi
+	fi
+}
+
+infer_from_git
+
+# Fallbacks
+GH_USER=${GH_USER:-"$(git config user.name 2>/dev/null || true)"}
+REPO_NAME=${REPO_NAME:-"$(basename "$(pwd)")"}
+
+# Read CNAME if present and no explicit --domain
+if [[ -z "$CUSTOM_DOMAIN" && -f CNAME ]]; then
+	# Read first non-comment, non-empty line
+	CUSTOM_DOMAIN=$(grep -E '^[^#[:space:]].*$' CNAME | head -n1 || true)
+fi
+
+if ! $ASSUME_YES; then
+	read -r -p "GitHub user/organization [$GH_USER]: " tmp || true
+	GH_USER=${tmp:-$GH_USER}
+	read -r -p "Repository name [$REPO_NAME]: " tmp || true
+	REPO_NAME=${tmp:-$REPO_NAME}
+	read -r -p "Custom domain for Pages (blank to use github.io) [$CUSTOM_DOMAIN]: " tmp || true
+	CUSTOM_DOMAIN=${tmp:-$CUSTOM_DOMAIN}
+fi
+
+if [[ -z "$GH_USER" || -z "$REPO_NAME" ]]; then
+	echo "Error: Could not determine GitHub user or repo name." >&2
+	exit 1
+fi
+
+REPO_URL="https://github.com/$GH_USER/$REPO_NAME.git"
+
+if [[ -n "$CUSTOM_DOMAIN" ]]; then
+	PAGES_BASE="https://$CUSTOM_DOMAIN"
+else
+	PAGES_BASE="https://$GH_USER.github.io/$REPO_NAME"
+fi
+
+DOWNLOAD_CMD="curl -fsSL $PAGES_BASE/dl.sh | bash"
+
+printf "\nConfiguring with:\n"
+printf "  GitHub repo: %s\n" "$REPO_URL"
+printf "  Pages base:  %s\n" "$PAGES_BASE"
+printf "  One-liner:   %s\n" "$DOWNLOAD_CMD"
+
+update_dl_sh() {
+	local file="dl-util/dl.sh"
+	if [[ ! -f "$file" ]]; then
+		echo "Error: $file not found" >&2
+		exit 1
+	fi
+	# Replace placeholder
+	sed -i '' -e "s|REPO_URL=\"__REPO_URL__\"|REPO_URL=\"$REPO_URL\"|" "$file" 2>/dev/null \
+		|| sed -i -e "s|REPO_URL=\"__REPO_URL__\"|REPO_URL=\"$REPO_URL\"|" "$file"
+}
+
+write_repo_url_txt() {
+	echo "$REPO_URL" > dl-util/repo_url.txt
+}
+
+rewrite_index_html() {
+	cat > dl-util/index.html <<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>${REPO_NAME} — bootstrap</title>
+	<style>
+		body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+		code, pre { background: #f6f8fa; padding: .2rem .4rem; border-radius: 4px; }
+		pre { padding: .75rem 1rem; overflow-x: auto; }
+		.muted { color: #6a737d; }
+	</style>
+	<link rel="canonical" href="$PAGES_BASE/" />
+	${CUSTOM_DOMAIN:+<meta http-equiv="refresh" content="0; url=$PAGES_BASE/">}
+	<meta name="robots" content="noindex" />
+	<meta name="description" content="Bootstrap script for $GH_USER/$REPO_NAME" />
+	<meta property="og:title" content="$REPO_NAME — bootstrap" />
+	<meta property="og:description" content="Run a single command to clone and set up the repo." />
+	<meta property="og:url" content="$PAGES_BASE/" />
+	<meta property="og:type" content="website" />
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:title" content="$REPO_NAME — bootstrap" />
+	<meta name="twitter:description" content="Run a single command to clone and set up the repo." />
+	<link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+	<meta http-equiv="X-Content-Type-Options" content="nosniff" />
+	<meta http-equiv="Referrer-Policy" content="no-referrer" />
+	<meta http-equiv="X-Frame-Options" content="DENY" />
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';" />
+	<meta name="X-Robots-Tag" content="noarchive, noimageindex" />
+	<meta name="X-Content-Security-Policy" content="default-src 'none'" />
+</head>
+<body>
+	<h1>Bootstrap ${REPO_NAME}</h1>
+	<p>Run this one-liner in a terminal:</p>
+	<pre><code>${DOWNLOAD_CMD}</code></pre>
+	<p class="muted">This downloads <code>dl.sh</code> from GitHub Pages and runs it.</p>
+	<p>
+		• <a href="$PAGES_BASE/dl.sh">dl.sh</a> &nbsp;•&nbsp;
+		<a href="https://github.com/${GH_USER}/${REPO_NAME}">Repository on GitHub</a>
+	</p>
+</body>
+</html>
+HTML
+}
+
+update_readme_block() {
+	local file="README.md"
+	local start='<!-- QUICK_INSTALL_START -->'
+	local end='<!-- QUICK_INSTALL_END -->'
+
+	# Build the replacement block in a temp file to avoid shell expansion issues
+	local tmp
+	tmp=$(mktemp)
+	cat > "$tmp" <<EOF
+${start}
+Once configured and published, anyone can bootstrap your analysis with:
+
+```
+${DOWNLOAD_CMD}
+```
+
+This line is auto-generated by \`create_command.sh\` after you personalize the repo.
+${end}
+EOF
+
+	if grep -q "$start" "$file" && grep -q "$end" "$file"; then
+		# Replace the range between start and end (inclusive) with the temp block
+		awk -v start="$start" -v end="$end" -v replfile="$tmp" '
+			$0 ~ start { replacing=1; while ((getline line < replfile) > 0) print line; next }
+			replacing && $0 ~ end { replacing=0; next }
+			!replacing { print }
+		' "$file" > "$file.tmp"
+		mv "$file.tmp" "$file"
+	else
+		# Append a new section if markers are missing
+		{
+			printf "\n## Quick install\n\n"; cat "$tmp"
+		} >> "$file"
+	fi
+
+	rm -f "$tmp"
+}
+
+ensure_files_exist() {
+	[[ -d dl-util ]] || { echo "Error: dl-util/ directory not found" >&2; exit 1; }
+}
+
+ensure_files_exist
+update_dl_sh
+write_repo_url_txt
+rewrite_index_html
+update_readme_block
+
+printf "\nDone. Next steps:\n"
+printf "  1) Commit and push these changes to GitHub.\n"
+printf "  2) Ensure GitHub Pages is set to 'Deploy from GitHub Actions'.\n"
+printf "  3) Wait for the 'Deploy dl.sh to GitHub Pages' workflow to finish.\n"
+printf "  4) Share this one-liner:\n\n   %s\n\n" "$DOWNLOAD_CMD"
