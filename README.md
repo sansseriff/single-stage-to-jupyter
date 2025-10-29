@@ -34,6 +34,10 @@ git clone https://github.com/<your-github-username>/<your-new-repo>.git
 cd <your-new-repo>
 ```
 
+Or, copy the clone link from your new repo's gui link here:
+
+![link](./dl-util/repo-link.png)
+
 3. Add your analysis code and assets in the repository. Recommended structure:
 
 - `data/` — small demonstration datasets (avoid shipping large raw data in git)
@@ -106,5 +110,3 @@ If the hash differs, re-check the URL or contact the maintainer (the hash change
 ## Security reminder
 
 Anyone running a remote script should review it first. Provide the command both as the quick pipe (convenient) and as a link to `dl.sh` so users can inspect it before running.
-
-
