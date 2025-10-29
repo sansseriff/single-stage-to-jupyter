@@ -280,43 +280,51 @@ maybe_replace_readme() {
 				mv README.md README.template.md
 			fi
 
-			            cat > README.md <<-EOF
-				# ${REPO_NAME}
+			# Build the new README in a temp file first, then move it atomically.
+			# This avoids leaving an empty README.md if anything fails mid-write (e.g., due to set -u).
+			tmp_readme=$(mktemp)
+			# Temporarily allow unset vars in this heredoc to render as empty instead of exiting.
+			set +u
+cat > "$tmp_readme" <<EOF
+# ${REPO_NAME}
 
-				Brief description: Replace this paragraph with a short overview of your dataset and experiment goals. Include links to data sources if public, and summarize the key questions you answer.
+Brief description: Replace this paragraph with a short overview of your dataset and experiment goals. Include links to data sources if public, and summarize the key questions you answer.
 
-				## Quick install
+## Quick install
 
-				<!-- QUICK_INSTALL_START -->
+<!-- QUICK_INSTALL_START -->
 
-				Run this in a terminal to clone and set up the project:
+Run this in a terminal to clone and set up the project:
 
-				```zsh
-				${DOWNLOAD_CMD}
-				```
+```zsh
+${DOWNLOAD_CMD}
+```
 
-				Integrity (SHA256 of dl.sh):
+Integrity (SHA256 of dl.sh):
 
-				```text
-				${SHA256_DL_SH}
-				```
+```text
+${SHA256_DL_SH}
+```
 
-				<!-- QUICK_INSTALL_END -->
+<!-- QUICK_INSTALL_END -->
 
-				## Project notes
+## Project notes
 
-				- Data: Describe where data comes from and any preprocessing requirements.
-				- Experiment: Outline the main analysis/experiment steps and expected outputs.
-				- Environment: Dependencies are managed with uv (see dl-util/install_and_sync.sh for details).
+- Data: Describe where data comes from and any preprocessing requirements.
+- Experiment: Outline the main analysis/experiment steps and expected outputs.
+- Environment: Dependencies are managed with uv (see dl-util/install_and_sync.sh for details).
 
-				## Next steps
+## Next steps
 
-				- Edit this README to document your specific analysis.
-				- See the original template guide in 
-				  README.template.md for advanced usage and maintenance tips.
-				- Optionally delete the template_images/ folder in dl-util/ and the README.template.md. (but don't
-				   delete other files in dl-util/)
-			EOF
+- Edit this README to document your specific analysis.
+- See the original template guide in 
+  README.template.md for advanced usage and maintenance tips.
+- Optionally delete the template_images/ folder in dl-util/ and the README.template.md. (but don't
+  delete other files in dl-util/)
+EOF
+			# Restore nounset behavior for the rest of the script
+			set -u
+			mv -f "$tmp_readme" README.md
 			;;
 	esac
 }
