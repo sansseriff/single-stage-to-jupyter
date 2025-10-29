@@ -11,7 +11,7 @@ set -euo pipefail
 
 # IMPORTANT: This placeholder is updated by initialize_repo.sh during bootstrap.
 # Do not edit manually unless you know what you're doing.
-REPO_URL="https://github.com/sansseriff/single-stage-to-jupyter.git"
+REPO_URL="https://github.com/pretend-user/pretend-repo.git"
 
 # Fallback if placeholder somehow remains (best-effort guess)
 if [[ "$REPO_URL" == "__REPO_URL__" ]]; then
