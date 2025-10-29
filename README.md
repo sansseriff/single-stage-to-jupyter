@@ -1,6 +1,6 @@
 # Single Stage to Jupyter
 
-![single-stage](./deploy-utils/single-stage.png)
+![single-stage](./dl-util/single-stage.png)
 
 This is a starter repository that makes it easy for others to download and run your code after you have commited it to github.
 
