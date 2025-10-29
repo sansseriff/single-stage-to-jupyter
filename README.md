@@ -106,3 +106,7 @@ Compare the output to the SHA shown in your short README or Pages landing. The h
 ## Security reminder
 
 Anyone running a remote script should review it first. Provide the command both as the quick pipe (convenient) and as a link to `dl.sh` so users can inspect it before running.
+
+## Still worried about running untreusted shell scripts?
+
+You can install and use [vet](https://github.com/safedep/vet) in combination with this template repository. [Todo: experimental]
