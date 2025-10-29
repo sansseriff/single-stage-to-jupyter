@@ -314,6 +314,8 @@ maybe_replace_readme() {
 				- Edit this README to document your specific analysis.
 				- See the original template guide in 
 				  README.template.md for advanced usage and maintenance tips.
+				- Optionally delete the template_images/ folder in dl-util/ and the README.template.md. (but don't
+				   delete other files in dl-util/)
 			EOF
 			;;
 	esac

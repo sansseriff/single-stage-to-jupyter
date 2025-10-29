@@ -29,32 +29,43 @@ Running this command will clone the repo, install dependencies, and ask if you'd
 Follow these steps to create your own one-line-downloadable analysis repository from this template.
 
 1. Click "Use this template" on GitHub to create your repo from this template.
-2. Clone the new repo locally:
+2. Enable github pages from github actions.
 
-```zsh
-git clone https://github.com/<your-github-username>/<your-new-repo>.git
-cd <your-new-repo>
-```
+- Click settings:![settings](./dl-util/template_images/settings.png)
+- Click "Pages" on the left side, then click "Github Actions" from the dropdown labeled "Source" ![actions](./dl-util/template_images/actions.png)
 
-Or, copy the clone link from your new repo's gui link here:
+3. Clone the new repo locally:
 
-![link](./dl-util/repo-link.png)
+   ```zsh
+   git clone https://github.com/<your-github-username>/<your-new-repo>.git
+   cd <your-new-repo>
+   ```
 
-3. Add your analysis code and assets in the repository. Recommended structure:
+   Or, copy the clone link from your new repo's gui link here:
+
+   ![link](./dl-util/template_images/repo-link.png)
+
+4. Add your analysis code and assets in the repository. Recommended structure:
 
 - `data/` — small demonstration datasets (avoid shipping large raw data in git)
 - `src/` — analysis scripts and modules
-- `dl-util/install_and_sync.sh` — the repo-specific install + setup script
-- `dl-util/dl.sh` — the downloadable bootstrap script (generated for you)
 
 4. Personalize and generate the one-liner that will appear in your README and be hosted on GitHub Pages:
 
 ```zsh
 chmod +x initialize_repo.sh
+./initialize_repo.sh
+```
+
+This will walk you through a few steps to customize the link to your repo.
+
+You may also use a lone-liner with all your details entered:
+
+```zsh
 ./initialize_repo.sh --user <your-github-username> --repo <your-new-repo> [--domain your.custom.domain] --yes
 ```
 
-This will update `dl-util/dl.sh`, `dl-util/index.html`, `dl-util/repo_url.txt`, and the README Quick Install block with the correct URL.
+This will update `dl-util/dl.sh`, `dl-util/index.html`, `dl-util/repo_url.txt`, and generate a README customized for your project with the download and install link.
 
 5. Commit and push the changes to GitHub:
 
@@ -77,22 +88,9 @@ and your README will show the one-liner such as:
 curl -fsSL https://<your-github-username>.github.io/<your-new-repo>/dl.sh | bash
 ```
 
-## Checklist (what to do after using this template)
+## Integrity check
 
-- [ ] Add your analysis code and small example data
-- [ ] Verify `install_and_sync.sh` correctly installs dependencies and launches any long-running services appropriately (e.g., Jupyter Lab)
-- [ ] Run `./initialize_repo.sh` to personalize the one-liner
-- [ ] Commit and push changes to GitHub
-- [ ] Confirm the `Deploy dl.sh to GitHub Pages` workflow completes successfully in Actions
-- [ ] Use the one-liner from the README to validate a fresh clone on another machine
-
-## Recommended practices and notes
-
-- Use the piped one-liner (`curl ... | bash`) to avoid leaving `dl.sh` on the user's machine. If you prefer to save the script first, provide the alternate command in the README and explain the temporary file approach.
-- Keep `dl-util/dl.sh` simple and safe: it should primarily clone/pull your repo and run the trusted `dl-util/install_and_sync.sh` found inside the repo. Avoid storing secrets in the repo.
-- For transparency, include the contents of `install_and_sync.sh` in the repository root and consider adding a brief SHA256 hash near the one-liner so advanced users can verify the downloaded file.
-
-## Integrity check (optional)
+The generated and customized project supports SHA256 hash verification, as it requires running running scripts on your machine initiated by the single download-and-install command.
 
 To verify the downloaded `dl.sh` before running it, compare its SHA256 hash:
 
