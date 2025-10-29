@@ -7,9 +7,9 @@ set -euo pipefail
 # - Expects REPO_URL to point to the GitHub repository to clone.
 # - If run inside an existing git repo working tree, it will pull and reuse it.
 # - Otherwise, it will clone and cd into the new repo directory.
-# - Finally, runs install_and_sync.sh from the repo root.
+# - Finally, runs dl-util/install_and_sync.sh from the repo.
 
-# IMPORTANT: This placeholder is updated by create_command.sh during bootstrap.
+# IMPORTANT: This placeholder is updated by initialize_repo.sh during bootstrap.
 # Do not edit manually unless you know what you're doing.
 REPO_URL="https://github.com/sansseriff/single-stage-to-jupyter.git"
 
@@ -49,10 +49,10 @@ fi
 
 cd "$REPO_ROOT"
 
-if [[ ! -f install_and_sync.sh ]]; then
-    echo "Error: Expected install_and_sync.sh at repo root: $REPO_ROOT" >&2
+if [[ ! -f dl-util/install_and_sync.sh ]]; then
+    echo "Error: Expected dl-util/install_and_sync.sh in repo: $REPO_ROOT" >&2
     exit 1
 fi
 
-echo "Running install_and_sync.sh ..."
-bash -i install_and_sync.sh
+echo "Running dl-util/install_and_sync.sh ..."
+bash -i dl-util/install_and_sync.sh

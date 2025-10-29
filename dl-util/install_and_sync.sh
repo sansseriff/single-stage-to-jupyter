@@ -1,9 +1,15 @@
 #!/bin/sh
-# Script to install uv if not already installed, then run uv sync.
-# Optionally start Jupyter Lab after setup.
+# Repo setup script: install uv if needed, sync env, and optionally start Jupyter Lab.
+# This script lives in dl-util/ but operates from the repository root so relative paths work.
 
 set -e
 
+# Resolve repo root (parent of this script's directory)
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$REPO_ROOT"
+
+echo "[setup] Working directory: $REPO_ROOT"
 echo "[setup] Checking for uv..."
 if ! command -v uv >/dev/null 2>&1; then
     echo "[setup] uv not found. Installing via official script..."
@@ -34,15 +40,27 @@ if command -v uv >/dev/null 2>&1; then
     uv run ipython kernel install --user --name="project" || echo "[warn] ipython kernel registration skipped."
 fi
 
-# Prompt user whether to start Jupyter Lab now
-printf "\nStart Jupyter Lab now? [Y/n]: "
-read ans
-case "$ans" in
-    n|N|no|No|NO)
-        echo "[setup] Skipping Jupyter Lab launch. You can start it later with: uv run --with jupyter jupyter lab"
-        ;;
-    *)
-        echo "[setup] Launching Jupyter Lab... (Ctrl+C to stop)"
-        uv run --with jupyter jupyter lab
-        ;;
-esac
+# Prompt control: honor START_JUPYTER if provided, otherwise try prompting via /dev/tty
+should_launch() {
+    case "${START_JUPYTER:-}" in
+        1|yes|YES|true|TRUE) return 0 ;;
+        0|no|NO|false|FALSE) return 1 ;;
+    esac
+
+    if [ -e /dev/tty ] && [ -r /dev/tty ] && [ -w /dev/tty ]; then
+        printf "\nStart Jupyter Lab now? [Y/n]: " > /dev/tty
+        IFS= read -r ans < /dev/tty || ans=""
+        case "$ans" in
+            [Nn]*|no|No|NO) return 1 ;;
+            *) return 0 ;;
+        esac
+    fi
+    return 1
+}
+
+if should_launch; then
+    echo "[setup] Launching Jupyter Lab... (Ctrl+C to stop)"
+    uv run --with jupyter jupyter lab
+else
+    echo "[setup] Skipping Jupyter Lab launch. You can start it later with: uv run --with jupyter jupyter lab"
+fi
