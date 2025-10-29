@@ -1,1 +1,1 @@
-https://github.com/sansseriff/single-stage-to-jupyter.git
+https://github.com/pretend-user/pretend-repo.git

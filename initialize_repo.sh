@@ -116,9 +116,15 @@ update_dl_sh() {
 		echo "Error: $file not found" >&2
 		exit 1
 	fi
-	# Replace placeholder
-	sed -i '' -e "s|REPO_URL=\"__REPO_URL__\"|REPO_URL=\"$REPO_URL\"|" "$file" 2>/dev/null \
-		|| sed -i -e "s|REPO_URL=\"__REPO_URL__\"|REPO_URL=\"$REPO_URL\"|" "$file"
+	# Update any existing REPO_URL assignment (placeholder or previous value)
+	# Works on macOS (BSD sed) and GNU sed
+	if sed --version >/dev/null 2>&1; then
+		# GNU sed
+		sed -E -i "s@^REPO_URL=\"[^\"]*\"@REPO_URL=\"$REPO_URL\"@" "$file"
+	else
+		# BSD sed (macOS)
+		sed -E -i '' "s@^REPO_URL=\"[^\"]*\"@REPO_URL=\"$REPO_URL\"@" "$file"
+	fi
 }
 
 write_repo_url_txt() {
@@ -329,6 +335,63 @@ maybe_replace_readme() {
 	esac
 }
 
+setup_uv_environment() {
+	# Offer to install uv and sync the Python environment
+	local should_setup=""
+	
+	if $ASSUME_YES; then
+		should_setup="y"
+	else
+		printf "\nThis template repo uses the uv Python package manager for environment and dependency management.\n"
+		printf "Install uv (if not already installed) and initialize a local Python environment? [Y/n]: "
+		read -r should_setup
+	fi
+	
+	case "$should_setup" in
+		n|N|no|No|NO)
+			echo "[info] Skipping uv setup. You can run 'dl-util/install_and_sync.sh' later to set up the environment."
+			return
+			;;
+	esac
+	
+	echo "[setup] Checking for uv..."
+	if ! command -v uv >/dev/null 2>&1; then
+		echo "[setup] uv not found. Installing via official script..."
+		if command -v curl >/dev/null 2>&1; then
+			curl -fsSL https://astral.sh/uv/install.sh | sh || {
+				echo "[error] Failed to install uv. You can install it manually later.";
+				return 1;
+			}
+			# Source the env to make uv available in current session
+			export PATH="$HOME/.local/bin:$PATH"
+		elif command -v wget >/dev/null 2>&1; then
+			wget -qO- https://astral.sh/uv/install.sh | sh || {
+				echo "[error] Failed to install uv. You can install it manually later.";
+				return 1;
+			}
+			export PATH="$HOME/.local/bin:$PATH"
+		else
+			echo "[error] Neither curl nor wget is available to install uv."
+			echo "[info] Please install uv manually from https://docs.astral.sh/uv/"
+			return 1
+		fi
+	else
+		echo "[setup] uv is already installed."
+	fi
+	
+	echo "[setup] Syncing Python environment with uv..."
+	if command -v uv >/dev/null 2>&1; then
+		uv sync || {
+			echo "[error] uv sync failed. You may need to check pyproject.toml or run it manually later.";
+			return 1;
+		}
+		echo "[setup] ✓ Python environment synchronized."
+	else
+		echo "[warn] uv command not found after installation. You may need to restart your shell."
+		echo "[info] After restarting, run: uv sync"
+	fi
+}
+
 ensure_files_exist
 update_dl_sh
 write_repo_url_txt
@@ -336,6 +399,7 @@ compute_sha
 rewrite_index_html
 maybe_replace_readme
 write_state
+setup_uv_environment
 
 printf "\nDone. Next steps:\n"
 printf "  1) Commit and push these changes to GitHub.\n"
