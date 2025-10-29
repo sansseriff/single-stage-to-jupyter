@@ -1,0 +1,52 @@
+#!/usr/bin/env pwsh
+# PowerShell bootstrap for this repo
+# - Clones the repository specified by $RepoUrl
+# - If run inside an existing git repo, pulls latest
+# - Attempts to run dl-util/install_and_sync.sh via bash if available
+
+$ErrorActionPreference = 'Stop'
+
+# IMPORTANT: This placeholder is updated by initialize_repo.sh during bootstrap.
+# Do not edit manually unless you know what you're doing.
+$RepoUrl = "https://github.com/testuser/testrepo.git"
+
+if ([string]::IsNullOrWhiteSpace($RepoUrl) -or $RepoUrl -eq "https://github.com/testuser/testrepo.git") {
+    Write-Error "Repo URL is not configured. Ask the repo owner to run the bootstrap script."
+}
+
+function Test-GitRepo([string]$Path) {
+    try {
+        git -C $Path rev-parse --is-inside-work-tree *> $null
+        return $LASTEXITCODE -eq 0
+    } catch { return $false }
+}
+
+$cwd = (Get-Location).Path
+if (Test-GitRepo -Path $cwd) {
+    Write-Host "Detected existing git repository in $cwd — pulling latest..."
+    git -C $cwd pull --ff-only
+    $repoRoot = $cwd
+} else {
+    Write-Host "Cloning $RepoUrl ..."
+    git clone $RepoUrl
+    $name = [System.IO.Path]::GetFileNameWithoutExtension($RepoUrl)
+    $repoRoot = Join-Path $cwd $name
+}
+
+Set-Location $repoRoot
+
+$installScript = Join-Path $repoRoot 'dl-util/install_and_sync.sh'
+if (-not (Test-Path $installScript)) {
+    Write-Error "Expected dl-util/install_and_sync.sh in repo: $repoRoot"
+}
+
+# Prefer bash if available
+$bash = Get-Command bash -ErrorAction SilentlyContinue
+if ($bash) {
+    Write-Host "Running dl-util/install_and_sync.sh via bash ..."
+    & $bash -lc "cd '$repoRoot'; bash -i dl-util/install_and_sync.sh"
+} else {
+    Write-Warning "bash was not found. Please run the following manually in a bash shell (Git Bash or WSL):"
+    Write-Host "    cd '$repoRoot'"
+    Write-Host "    bash -i dl-util/install_and_sync.sh"
+}

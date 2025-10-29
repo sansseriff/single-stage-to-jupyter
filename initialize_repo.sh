@@ -102,7 +102,10 @@ else
 	PAGES_BASE="https://$GH_USER.github.io/$REPO_NAME"
 fi
 
-DOWNLOAD_CMD="curl -fsSL $PAGES_BASE/dl.sh | bash"
+	DOWNLOAD_CMD="curl -fsSL $PAGES_BASE/dl.sh | bash"
+	WGET_CMD="wget -qO- $PAGES_BASE/dl.sh | bash"
+	# PowerShell one-liner for Windows
+	WIN_PS_CMD="powershell -NoProfile -ExecutionPolicy Bypass -Command \"iwr -UseBasicParsing $PAGES_BASE/dl.ps1 | iex\""
 SHA256_DL_SH=""
 
 printf "\nConfiguring with:\n"
@@ -124,6 +127,26 @@ update_dl_sh() {
 	else
 		# BSD sed (macOS)
 		sed -E -i '' "s@^REPO_URL=\"[^\"]*\"@REPO_URL=\"$REPO_URL\"@" "$file"
+	fi
+}
+
+update_dl_ps1() {
+	local file="dl-util/dl.ps1"
+	if [[ ! -f "$file" ]]; then
+		echo "Error: $file not found" >&2
+		exit 1
+	fi
+	# Replace placeholder or existing assignment of $RepoUrl
+	if sed --version >/dev/null 2>&1; then
+		# GNU sed
+		sed -E -i "s@^\$RepoUrl = \"[^\"]*\"@\$RepoUrl = \"$REPO_URL\"@" "$file"
+		# Fallback: replace explicit placeholder if still present anywhere
+		sed -i "s@__REPO_URL__@$REPO_URL@g" "$file"
+	else
+		# BSD sed (macOS)
+		sed -E -i '' "s@^\$RepoUrl = \"[^\"]*\"@\$RepoUrl = \"$REPO_URL\"@" "$file"
+		# Fallback: replace explicit placeholder if still present anywhere
+		sed -i '' "s@__REPO_URL__@$REPO_URL@g" "$file"
 	fi
 }
 
@@ -166,12 +189,18 @@ rewrite_index_html() {
 </head>
 <body>
 	<h1>Bootstrap ${REPO_NAME}</h1>
-	<p>Run this one-liner in a terminal:</p>
+	<h2>Quick install</h2>
+	<p>macOS/Linux (curl):</p>
 	<pre><code>${DOWNLOAD_CMD}</code></pre>
+	<p>macOS/Linux (wget):</p>
+	<pre><code>${WGET_CMD}</code></pre>
+	<p>Windows (PowerShell):</p>
+	<pre><code>${WIN_PS_CMD}</code></pre>
 	<p class="muted">Integrity (SHA256 of dl.sh): <code>${SHA256_DL_SH}</code></p>
 	<p class="muted">This downloads <code>dl.sh</code> from GitHub Pages and runs it.</p>
 	<p>
 		• <a href="$PAGES_BASE/dl.sh">dl.sh</a> &nbsp;•&nbsp;
+		<a href="$PAGES_BASE/dl.ps1">dl.ps1</a> &nbsp;•&nbsp;
 		<a href="https://github.com/${GH_USER}/${REPO_NAME}">Repository on GitHub</a>
 	</p>
 </body>
@@ -193,8 +222,19 @@ update_readme_block() {
 		echo "${start}"
 		echo "Once configured and published, anyone can bootstrap your analysis with:"
 		echo ""
+		echo "macOS/Linux (curl):"
 		echo '```zsh'
 		echo "${DOWNLOAD_CMD}"
+		echo '```'
+		echo ""
+		echo "macOS/Linux (wget):"
+		echo '```zsh'
+		echo "${WGET_CMD}"
+		echo '```'
+		echo ""
+		echo "Windows (PowerShell):"
+		echo '```powershell'
+		echo "${WIN_PS_CMD}"
 		echo '```'
 		echo ""
 		echo "Integrity (SHA256 of dl.sh):"
@@ -273,11 +313,15 @@ update_readme_placeholders() {
 			# GNU sed
 			sed -i "s@__REPO_NAME__@${REPO_NAME}@g" "$file"
 			sed -i "s@__DOWNLOAD_CMD__@${DOWNLOAD_CMD}@g" "$file"
+			sed -i "s@__WGET_CMD__@${WGET_CMD}@g" "$file"
+			sed -i "s@__WIN_POWERSHELL_CMD__@${WIN_PS_CMD}@g" "$file"
 			sed -i "s@__SHA256_DL_SH__@${SHA256_DL_SH}@g" "$file"
 		else
 			# BSD sed (macOS)
 			sed -i '' "s@__REPO_NAME__@${REPO_NAME}@g" "$file"
 			sed -i '' "s@__DOWNLOAD_CMD__@${DOWNLOAD_CMD}@g" "$file"
+			sed -i '' "s@__WGET_CMD__@${WGET_CMD}@g" "$file"
+			sed -i '' "s@__WIN_POWERSHELL_CMD__@${WIN_PS_CMD}@g" "$file"
 			sed -i '' "s@__SHA256_DL_SH__@${SHA256_DL_SH}@g" "$file"
 		fi
 	else
@@ -362,13 +406,14 @@ setup_uv_environment() {
 				echo "[error] Failed to install uv. You can install it manually later.";
 				return 1;
 			}
-			# Source the env to make uv available in current session
+			# Make uv available immediately in this shell session
 			export PATH="$HOME/.local/bin:$PATH"
 		elif command -v wget >/dev/null 2>&1; then
 			wget -qO- https://astral.sh/uv/install.sh | sh || {
 				echo "[error] Failed to install uv. You can install it manually later.";
 				return 1;
 			}
+			# Make uv available immediately in this shell session
 			export PATH="$HOME/.local/bin:$PATH"
 		else
 			echo "[error] Neither curl nor wget is available to install uv."
@@ -386,6 +431,8 @@ setup_uv_environment() {
 			return 1;
 		}
 		echo "[setup] ✓ Python environment synchronized."
+		echo "[info] Learn more about using uv here: https://docs.astral.sh/uv/guides/projects/"
+		echo "[tip] Run Python with: uv run your_script.py"
 	else
 		echo "[warn] uv command not found after installation. You may need to restart your shell."
 		echo "[info] After restarting, run: uv sync"
@@ -394,6 +441,7 @@ setup_uv_environment() {
 
 ensure_files_exist
 update_dl_sh
+update_dl_ps1
 write_repo_url_txt
 compute_sha
 rewrite_index_html
