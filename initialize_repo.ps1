@@ -155,7 +155,7 @@ function Rewrite-IndexHtml {
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>$Repo — bootstrap</title>
+    <title>$Repo - bootstrap</title>
     <style>
         body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
         code, pre { background: #f6f8fa; padding: .2rem .4rem; border-radius: 4px; }
@@ -165,12 +165,12 @@ function Rewrite-IndexHtml {
     <link rel="canonical" href="$PagesBase/" />
     <meta name="robots" content="noindex" />
     <meta name="description" content="Bootstrap script for $User/$Repo" />
-    <meta property="og:title" content="$Repo — bootstrap" />
+    <meta property="og:title" content="$Repo - bootstrap" />
     <meta property="og:description" content="Run a single command to clone and set up the repo." />
     <meta property="og:url" content="$PagesBase/" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="$Repo — bootstrap" />
+    <meta name="twitter:title" content="$Repo - bootstrap" />
     <meta name="twitter:description" content="Run a single command to clone and set up the repo." />
     <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
@@ -254,7 +254,7 @@ function Update-Readme-Placeholders {
 
 function Maybe-Replace-Readme {
     if (Test-Path $STATE_FILE -and -not $RegenReadme) {
-        Write-Host "[info] Detected bootstrap state at $STATE_FILE — updating README placeholders only."
+    Write-Host "[info] Detected bootstrap state at $STATE_FILE - updating README placeholders only."
         Update-Readme-Placeholders
         return
     }
