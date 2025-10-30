@@ -50,33 +50,33 @@ Follow these steps to create your own single-line downloadable analysis reposito
 
 5. Personalize and generate the one-liner, which will appear in your README and be hosted on GitHub Pages:
 
-```zsh
-chmod +x initialize_repo.sh
-./initialize_repo.sh
-```
+   ```zsh
+   chmod +x initialize_repo.sh
+   ./initialize_repo.sh
+   ```
 
-This will walk you through a few steps to customize the link to your repo.
+   This will walk you through a few steps to customize the link to your repo.
 
-You may also use a one-liner with all your details entered:
+   You may also use a one-liner with all your details entered:
 
-```zsh
-./initialize_repo.sh --user <your-github-username> --repo <your-new-repo> [--domain your.custom.domain] --yes
-```
+   ```zsh
+   ./initialize_repo.sh --user <your-github-username> --repo <your-new-repo> [--domain your.custom.domain] --yes
+   ```
 
-Windows (PowerShell) template authors can run the equivalent initializer:
+   Windows (PowerShell) template authors can run the equivalent initializer:
 
-```powershell
-# PowerShell 7+
-pwsh -NoProfile -File .\initialize_repo.ps1
+   ```powershell
+   # PowerShell 7+
+   pwsh -NoProfile -File .\initialize_repo.ps1
 
-# Or non-interactive with parameters
-pwsh -NoProfile -File .\initialize_repo.ps1 -User <your-github-username> -Repo <your-new-repo> [-Domain your.custom.domain] -Yes
+   # Or non-interactive with parameters
+   pwsh -NoProfile -File .\initialize_repo.ps1 -User <your-github-username> -Repo <your-new-repo> [-Domain your.custom.domain] -Yes
 
-# Windows PowerShell 5.1 alternative
-powershell -NoProfile -ExecutionPolicy Bypass -File .\initialize_repo.ps1 -User <your-github-username> -Repo <your-new-repo> -Yes
-```
+   # Windows PowerShell 5.1 alternative
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\initialize_repo.ps1 -User <your-github-username> -Repo <your-new-repo> -Yes
+   ```
 
-This will update `dl-util/dl.sh`, `dl-util/index.html`, `dl-util/repo_url.txt`, and generate a README customized for your project with the download and install link.
+   This will update `dl-util/dl.sh`, `dl-util/index.html`, `dl-util/repo_url.txt`, and generate a README customized for your project with the download and install link.
 
 6. Commit and push the changes to GitHub:
 
