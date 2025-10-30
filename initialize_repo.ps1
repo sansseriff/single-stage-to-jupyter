@@ -382,4 +382,6 @@ Write-Host "`nDone. Next steps:"
 Write-Host "  1) Commit and push these changes to GitHub."
 Write-Host "  2) Ensure GitHub Pages is set to 'Deploy from GitHub Actions'."
 Write-Host "  3) Wait for the 'Deploy dl.sh to GitHub Pages' workflow to finish."
-Write-Host ("  4) Share this one-liner:`n`n   {0}`n" -f $DownloadCmd)
+Write-Host "  4) Learn how to add packages (uv add ...) and manage the Python env: https://docs.astral.sh/uv/guides/projects/"
+Write-Host "  5) You can remove packages by editing pyproject.toml and running 'uv sync'"
+Write-Host ("  6) Share this one-liner:`n`n   {0}`n" -f $DownloadCmd)
