@@ -35,18 +35,27 @@ if (Test-GitRepo -Path $cwd) {
 
 Set-Location $repoRoot
 
-$installScript = Join-Path $repoRoot 'dl-util/install_and_sync.sh'
-if (-not (Test-Path $installScript)) {
-    Write-Error "Expected dl-util/install_and_sync.sh in repo: $repoRoot"
-}
+$installPs1 = Join-Path $repoRoot 'dl-util/install_and_sync.ps1'
+$installSh  = Join-Path $repoRoot 'dl-util/install_and_sync.sh'
 
-# Prefer bash if available
-$bash = Get-Command bash -ErrorAction SilentlyContinue
-if ($bash) {
-    Write-Host "Running dl-util/install_and_sync.sh via bash ..."
-    & $bash -lc "cd '$repoRoot'; bash -i dl-util/install_and_sync.sh"
+if (Test-Path $installPs1) {
+    Write-Host "Running dl-util/install_and_sync.ps1 ..."
+    # Run with ExecutionPolicy Bypass for reliability across systems
+    $pwsh = Get-Command pwsh -ErrorAction SilentlyContinue
+    if ($pwsh) {
+        & $pwsh -NoProfile -ExecutionPolicy Bypass -File $installPs1
+    } else {
+        & powershell -NoProfile -ExecutionPolicy Bypass -File $installPs1
+    }
+} elseif (Test-Path $installSh) {
+    # Fallback to bash-based installer if present
+    $bash = Get-Command bash -ErrorAction SilentlyContinue
+    if ($bash) {
+        Write-Host "Running dl-util/install_and_sync.sh via bash ..."
+        & $bash -lc "cd '$repoRoot'; bash -i dl-util/install_and_sync.sh"
+    } else {
+        Write-Error "Neither install_and_sync.ps1 nor a usable bash environment for install_and_sync.sh was found."
+    }
 } else {
-    Write-Warning "bash was not found. Please run the following manually in a bash shell (Git Bash or WSL):"
-    Write-Host "    cd '$repoRoot'"
-    Write-Host "    bash -i dl-util/install_and_sync.sh"
+    Write-Error "Expected dl-util/install_and_sync.ps1 or dl-util/install_and_sync.sh in repo: $repoRoot"
 }
