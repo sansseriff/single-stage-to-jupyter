@@ -10,7 +10,9 @@ param(
     [Alias('y')]
     [switch]$Yes,
     [Alias('regen')]
-    [switch]$RegenReadme
+    [switch]$RegenReadme,
+    # Guard: absorb any stray `-and` passed by shells or tooling; ignored by script logic
+    [switch]$and
 )
 
 $ErrorActionPreference = 'Stop'
