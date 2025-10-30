@@ -1,1 +1,1 @@
-https://github.com/testuser/testrepo.git
+https://github.com/sansseriff/single-stage-to-jupyter.git

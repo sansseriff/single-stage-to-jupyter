@@ -114,40 +114,25 @@ printf "  Pages base:  %s\n" "$PAGES_BASE"
 printf "  One-liner:   %s\n" "$DOWNLOAD_CMD"
 
 update_dl_sh() {
-	local file="dl-util/dl.sh"
-	if [[ ! -f "$file" ]]; then
-		echo "Error: $file not found" >&2
-		exit 1
-	fi
-	# Update any existing REPO_URL assignment (placeholder or previous value)
-	# Works on macOS (BSD sed) and GNU sed
-	if sed --version >/dev/null 2>&1; then
-		# GNU sed
-		sed -E -i "s@^REPO_URL=\"[^\"]*\"@REPO_URL=\"$REPO_URL\"@" "$file"
-	else
-		# BSD sed (macOS)
-		sed -E -i '' "s@^REPO_URL=\"[^\"]*\"@REPO_URL=\"$REPO_URL\"@" "$file"
-	fi
+	local tpl="dl-util/dl.sh.template"
+	local out="dl-util/dl.sh"
+	[[ -f "$tpl" ]] || { echo "Error: $tpl not found" >&2; exit 1; }
+	# Replace only the first occurrence of the token to catch the assignment, preserve conditionals
+	local content
+	content=$(cat "$tpl")
+	content=${content/__REPO_URL__/$REPO_URL}
+	printf "%s" "$content" > "$out"
+	chmod +x "$out" || true
 }
 
 update_dl_ps1() {
-	local file="dl-util/dl.ps1"
-	if [[ ! -f "$file" ]]; then
-		echo "Error: $file not found" >&2
-		exit 1
-	fi
-	# Replace placeholder or existing assignment of $RepoUrl
-	if sed --version >/dev/null 2>&1; then
-		# GNU sed
-		sed -E -i "s@^\$RepoUrl = \"[^\"]*\"@\$RepoUrl = \"$REPO_URL\"@" "$file"
-		# Fallback: replace explicit placeholder if still present anywhere
-		sed -i "s@__REPO_URL__@$REPO_URL@g" "$file"
-	else
-		# BSD sed (macOS)
-		sed -E -i '' "s@^\$RepoUrl = \"[^\"]*\"@\$RepoUrl = \"$REPO_URL\"@" "$file"
-		# Fallback: replace explicit placeholder if still present anywhere
-		sed -i '' "s@__REPO_URL__@$REPO_URL@g" "$file"
-	fi
+	local tpl="dl-util/dl.ps1.template"
+	local out="dl-util/dl.ps1"
+	[[ -f "$tpl" ]] || { echo "Error: $tpl not found" >&2; exit 1; }
+	local content
+	content=$(cat "$tpl")
+	content=${content/__REPO_URL__/$REPO_URL}
+	printf "%s" "$content" > "$out"
 }
 
 write_repo_url_txt() {
@@ -267,6 +252,8 @@ update_readme_block() {
 
 ensure_files_exist() {
 	[[ -d dl-util ]] || { echo "Error: dl-util/ directory not found" >&2; exit 1; }
+	[[ -f dl-util/dl.sh.template ]] || { echo "Error: dl-util/dl.sh.template not found" >&2; exit 1; }
+	[[ -f dl-util/dl.ps1.template ]] || { echo "Error: dl-util/dl.ps1.template not found" >&2; exit 1; }
 }
 
 compute_sha() {
