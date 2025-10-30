@@ -63,6 +63,19 @@ You may also use a one-liner with all your details entered:
 ./initialize_repo.sh --user <your-github-username> --repo <your-new-repo> [--domain your.custom.domain] --yes
 ```
 
+Windows (PowerShell) template authors can run the equivalent initializer:
+
+```powershell
+# PowerShell 7+
+pwsh -NoProfile -File .\initialize_repo.ps1
+
+# Or non-interactive with parameters
+pwsh -NoProfile -File .\initialize_repo.ps1 -User <your-github-username> -Repo <your-new-repo> [-Domain your.custom.domain] -Yes
+
+# Windows PowerShell 5.1 alternative
+powershell -NoProfile -ExecutionPolicy Bypass -File .\initialize_repo.ps1 -User <your-github-username> -Repo <your-new-repo> -Yes
+```
+
 This will update `dl-util/dl.sh`, `dl-util/index.html`, `dl-util/repo_url.txt`, and generate a README customized for your project with the download and install link.
 
 6. Commit and push the changes to GitHub:
