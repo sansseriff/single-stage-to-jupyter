@@ -52,7 +52,9 @@ should_launch() {
     esac
 
     if [ -e /dev/tty ] && [ -r /dev/tty ] && [ -w /dev/tty ]; then
-        printf "\nStart Jupyter Lab now? [Y/n]: " > /dev/tty
+        # Print a helpful hint in bright cyan, then prompt once
+        printf "\033[1;36mNew to using uv to manage python projects? Check the \"uv Usage hints\" in the README of this project\033[0m\n" > /dev/tty
+        printf "Start Jupyter Lab now? [Y/n]: " > /dev/tty
         IFS= read -r ans < /dev/tty || ans=""
         case "$ans" in
             [Nn]*|no|No|NO) return 1 ;;

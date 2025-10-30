@@ -68,3 +68,11 @@ __SHA256_DL_SH__
 - Edit this README to document your specific analysis.
 - See the original template guide in README.template.md for advanced usage and maintenance tips.
 - Optionally delete the template_images/ folder in dl-util/ and the README.template.md. (but don't delete other files in dl-util/)
+
+## uv Usage hints
+
+- Add a Python package with `uv add <package-name>`
+- Create a local virtual environment `.venv` from the `uv.lock` and `pyproject.toml` files. (already done by install script)
+- Run a Python file using the local environment with `uv run <python-file>`
+- Run a Jupyter Lab server using the local environment with `uv run --with jupyter jupyter lab`
+- Learn more about using uv here: https://docs.astral.sh/uv/guides/projects/#creating-a-new-project
