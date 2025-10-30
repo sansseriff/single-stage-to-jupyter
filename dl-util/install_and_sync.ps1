@@ -79,7 +79,10 @@ function Should-Launch {
         '^(1|yes|true)$'  { return $true }
         '^(0|no|false)$'  { return $false }
     }
-    $ans = Read-Host "`nStart Jupyter Lab now? [Y/n]"
+    # Show a helpful hint before prompting
+    Write-Host ''
+    Write-Host 'New to using uv to manage python projects? Check the "uv Usage hints" in the README of this project' -ForegroundColor Cyan
+    $ans = Read-Host "Start Jupyter Lab now? [Y/n]"
     if ($ans -match '^(n|no)$' -or $ans -match '^[Nn]') { return $false }
     return $true
 }
