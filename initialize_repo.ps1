@@ -246,17 +246,22 @@ function Update-Readme-Placeholders {
     $file = 'README.md'
     if (-not (Test-Path $file)) { Write-Warning "README.md not found"; return }
     $text = Get-Content -Raw -Encoding UTF8 $file
+    $rawBase = "https://raw.githubusercontent.com/$User/$Repo/main"
 
     if ($text -match '__REPO_NAME__') {
-        $text = $text -replace '__REPO_NAME__', [regex]::Escape($Repo) -replace '\\Q|\\E',''
-        $text = $text -replace '__DOWNLOAD_CMD__', [regex]::Escape($DownloadCmd) -replace '\\Q|\\E',''
-        $text = $text -replace '__WGET_CMD__', [regex]::Escape($WgetCmd) -replace '\\Q|\\E',''
-        $text = $text -replace '__WIN_POWERSHELL_CMD__', [regex]::Escape($WinPsCmd) -replace '\\Q|\\E',''
-        $text = $text -replace '__SHA256_DL_SH__', [regex]::Escape($Sha256DlSh) -replace '\\Q|\\E',''
+        # Use literal replacements to avoid introducing backslashes from regex escaping
+        $text = $text.Replace('__REPO_NAME__', $Repo)
+        $text = $text.Replace('__DOWNLOAD_CMD__', $DownloadCmd)
+        $text = $text.Replace('__WGET_CMD__', $WgetCmd)
+        $text = $text.Replace('__WIN_POWERSHELL_CMD__', $WinPsCmd)
+        $text = $text.Replace('__SHA256_DL_SH__', $Sha256DlSh)
+        $text = $text.Replace('__RAW_BASE_URL__', $rawBase)
         Write-Utf8NoBomLF -Path $file -Content $text
     } elseif ($text -match '<!-- QUICK_INSTALL_START -->' -and $text -match '<!-- QUICK_INSTALL_END -->') {
         $block = Get-QuickInstallBlock
         $text  = [regex]::Replace($text, '<!-- QUICK_INSTALL_START -->[\s\S]*?<!-- QUICK_INSTALL_END -->', [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $block })
+        # Replace any remaining raw URL placeholders globally
+        $text = $text.Replace('__RAW_BASE_URL__', $rawBase)
         Write-Utf8NoBomLF -Path $file -Content $text
     }
 }
