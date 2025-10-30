@@ -72,8 +72,8 @@ Follow these steps to create your own single-line downloadable analysis reposito
    # Or non-interactive with parameters
    pwsh -NoProfile -File .\initialize_repo.ps1 -User <your-github-username> -Repo <your-new-repo> [-Domain your.custom.domain] -Yes
 
-   # Windows PowerShell 5.1 alternative
-   powershell -NoProfile -ExecutionPolicy Bypass -File .\initialize_repo.ps1 -User <your-github-username> -Repo <your-new-repo> -Yes
+   # Windows PowerShell 5.1 alternative (interactive)
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\initialize_repo.ps1
    ```
 
    This will update `dl-util/dl.sh`, `dl-util/index.html`, `dl-util/repo_url.txt`, and generate a README customized for your project with the download and install link.

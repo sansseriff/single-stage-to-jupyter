@@ -192,8 +192,8 @@ function Rewrite-IndexHtml {
     <p class="muted">Integrity (SHA256 of dl.sh): <code>$Sha256DlSh</code></p>
     <p class="muted">This downloads <code>dl.sh</code> from GitHub Pages and runs it.</p>
     <p>
-        • <a href="$PagesBase/dl.sh">dl.sh</a> &nbsp;•&nbsp;
-        <a href="$PagesBase/dl.ps1">dl.ps1</a> &nbsp;•&nbsp;
+        - <a href="$PagesBase/dl.sh">dl.sh</a> &nbsp;-&nbsp;
+        <a href="$PagesBase/dl.ps1">dl.ps1</a> &nbsp;-&nbsp;
         <a href="https://github.com/$User/$Repo">Repository on GitHub</a>
     </p>
 </body>
@@ -333,14 +333,14 @@ function Setup-UvEnvironment {
     $uv = Get-Command uv -ErrorAction SilentlyContinue
     if ($uv) {
         try { uv sync } catch { Write-Warning "[error] uv sync failed. Run manually later." }
-        Write-Host "[setup] ✓ Python environment synchronized."
+    Write-Host "[setup] Python environment synchronized."
         Write-Host "[tip] Run Python with: uv run your_script.py"
     } else {
         Ensure-UvPathInSession
         $uv = Get-Command uv -ErrorAction SilentlyContinue
         if ($uv) {
             try { uv sync } catch { Write-Warning "[error] uv sync failed. Run manually later." }
-            Write-Host "[setup] ✓ Python environment synchronized."
+            Write-Host "[setup] Python environment synchronized."
             Write-Host "[tip] Run Python with: uv run your_script.py"
         } else {
             Write-Warning "[warn] uv not found after installation. You may need to start a new PowerShell session. Then run: uv sync"
