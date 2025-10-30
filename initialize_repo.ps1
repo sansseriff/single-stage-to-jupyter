@@ -80,7 +80,9 @@ $PagesBase = if ($Domain) { "https://$Domain" } else { "https://$User.github.io/
 
 $DownloadCmd = "curl -fsSL $PagesBase/dl.sh | bash"
 $WgetCmd    = "wget -qO- $PagesBase/dl.sh | bash"
-$WinPsCmd   = "powershell -NoProfile -ExecutionPolicy Bypass -Command \"iwr -UseBasicParsing $PagesBase/dl.ps1 | iex\""
+# Build a Windows one-liner string with proper quoting for PowerShell 5.1+
+# Use -f formatting to avoid nested quote-escaping issues
+$WinPsCmd   = 'powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -UseBasicParsing {0}/dl.ps1 | iex"' -f $PagesBase
 $Sha256DlSh = ''
 
 Write-Host "`nConfiguring with:"
