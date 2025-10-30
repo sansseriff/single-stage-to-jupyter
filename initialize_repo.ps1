@@ -17,6 +17,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# Basic trap to surface unexpected errors with context
+trap {
+    Write-Host "[trap] $($_.Exception.GetType().FullName): $($_.Exception.Message)"
+    Write-Host "[trap] At: $($_.InvocationInfo.PositionMessage)"
+    break
+}
+
 function Write-Usage {
 @'
 Usage: pwsh ./initialize_repo.ps1 [-User <github_user>] [-Repo <repo_name>] [-Domain <custom.domain>] [-Yes] [-RegenReadme]
@@ -351,14 +358,23 @@ function Setup-UvEnvironment {
 }
 
 Ensure-Files-Exist
+Write-Host "[step] Ensure-Files-Exist completed"
 Update-DlSh
+Write-Host "[step] Update-DlSh completed"
 Update-DlPs1
+Write-Host "[step] Update-DlPs1 completed"
 Write-RepoUrlTxt
+Write-Host "[step] Write-RepoUrlTxt completed"
 Compute-Sha
+Write-Host "[step] Compute-Sha completed (SHA: $Sha256DlSh)"
 Rewrite-IndexHtml
+Write-Host "[step] Rewrite-IndexHtml completed"
 Maybe-Replace-Readme
+Write-Host "[step] Maybe-Replace-Readme completed"
 Write-State
+Write-Host "[step] Write-State completed"
 Setup-UvEnvironment
+Write-Host "[step] Setup-UvEnvironment completed"
 
 Write-Host "`nDone. Next steps:"
 Write-Host "  1) Commit and push these changes to GitHub."
