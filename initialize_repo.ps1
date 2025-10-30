@@ -262,7 +262,9 @@ function Update-Readme-Placeholders {
 }
 
 function Maybe-Replace-Readme {
-    if (Test-Path $STATE_FILE -and -not $RegenReadme) {
+    # PS 5.1 can misparse `Test-Path $STATE_FILE -and ...` as passing `-and` to Test-Path.
+    # Parenthesize each side so `-and` operates on expressions, not command arguments.
+    if ((Test-Path $STATE_FILE) -and (-not $RegenReadme)) {
     Write-Host "[info] Detected bootstrap state at $STATE_FILE - updating README placeholders only."
         Update-Readme-Placeholders
         return
