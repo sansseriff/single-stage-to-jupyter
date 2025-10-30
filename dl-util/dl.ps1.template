@@ -23,7 +23,7 @@ function Test-GitRepo([string]$Path) {
 
 $cwd = (Get-Location).Path
 if (Test-GitRepo -Path $cwd) {
-    Write-Host "Detected existing git repository in $cwd — pulling latest..."
+    Write-Host "Detected existing git repository in $cwd - pulling latest..."
     git -C $cwd pull --ff-only
     $repoRoot = $cwd
 } else {
