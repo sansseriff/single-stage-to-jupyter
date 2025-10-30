@@ -29,8 +29,8 @@ Follow these steps to create your own single-line downloadable analysis reposito
 1. Click "Use this template" on GitHub to create your repo from this template.
 2. Enable GitHub Pages from GitHub Actions.
 
-- Click settings:![settings](./dl-util/template_images/settings.png)
-- Click "Pages" on the left side, then click "GitHub Actions" from the dropdown labeled "Source" ![actions](./dl-util/template_images/actions.png)
+   - Click settings:![settings](./dl-util/template_images/settings.png)
+   - Click "Pages" on the left side, then click "GitHub Actions" from the dropdown labeled "Source" ![actions](./dl-util/template_images/actions.png)
 
 3. Clone the new repo locally:
 
@@ -45,8 +45,8 @@ Follow these steps to create your own single-line downloadable analysis reposito
 
 4. Add your analysis code and assets in the repository. Recommended structure:
 
-- `data/` — small demonstration datasets (avoid shipping large raw data in git)
-- `src/` — analysis scripts and modules
+   - `data/` — small demonstration datasets (avoid shipping large raw data in git)
+   - `src/` — analysis scripts and modules
 
 5. Personalize and generate the one-liner, which will appear in your README and be hosted on GitHub Pages:
 
@@ -80,24 +80,24 @@ Follow these steps to create your own single-line downloadable analysis reposito
 
 6. Commit and push the changes to GitHub:
 
-```zsh
-git add .
-git commit -m "Configure Pages one-liner and bootstrap files"
-# Push main (default branch)
-git push -u origin main
-```
+   ```zsh
+   git add .
+   git commit -m "Configure Pages one-liner and bootstrap files"
+   # Push main (default branch)
+   git push -u origin main
+   ```
 
 7. Wait for the GitHub Actions workflow ("Deploy dl.sh to GitHub Pages") to run and publish `dl-util/` to Pages. Once it finishes, your `dl.sh` will be available at:
 
-```
-https://<your-github-username>.github.io/<your-new-repo>/dl.sh
-```
+   ```
+   https://<your-github-username>.github.io/<your-new-repo>/dl.sh
+   ```
 
-and your README will show the one-liner such as:
+   and your README will show the one-liner such as:
 
-```
-curl -fsSL https://<your-github-username>.github.io/<your-new-repo>/dl.sh | bash
-```
+   ```
+   curl -fsSL https://<your-github-username>.github.io/<your-new-repo>/dl.sh | bash
+   ```
 
 ## Using uv for proper dependency management
 
