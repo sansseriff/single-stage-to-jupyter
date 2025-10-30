@@ -1,15 +1,15 @@
 #!/usr/bin/env pwsh
 [CmdletBinding()]
 param(
-    [Alias('user')]
+    [Alias('u')]
     [string]$User,
-    [Alias('repo')]
+    [Alias('r')]
     [string]$Repo,
-    [Alias('domain')]
+    [Alias('d')]
     [string]$Domain,
-    [Alias('yes')]
+    [Alias('y')]
     [switch]$Yes,
-    [Alias('regen-readme')]
+    [Alias('regen')]
     [switch]$RegenReadme
 )
 
