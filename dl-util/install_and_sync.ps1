@@ -28,14 +28,38 @@ function Install-Uv {
     }
 }
 
+$addedPath = $false
+function Ensure-UvPathInSession {
+    # Add common user-local bin directories to PATH for this session so newly installed uv is discoverable
+    $candidates = @()
+    foreach ($p in @("$HOME\.local\bin", "$env:USERPROFILE\.local\bin", "$HOME\.cargo\bin", "$env:USERPROFILE\.cargo\bin")) {
+        if ($p -and -not ($candidates -contains $p)) { $candidates += $p }
+    }
+    foreach ($dir in $candidates) {
+        if (Test-Path $dir) {
+            $parts = ($env:Path -split ';')
+            $exists = $false
+            foreach ($pp in $parts) { if ($pp.TrimEnd('\\') -ieq $dir.TrimEnd('\\')) { $exists = $true; break } }
+            if (-not $exists) {
+                $script:addedPath = $true
+                $env:Path = "$dir;$env:Path"
+                Write-Host "[setup] Added $dir to current session PATH"
+            }
+        }
+    }
+}
+
 $uv = Get-Command uv -ErrorAction SilentlyContinue
-if (-not $uv) { Install-Uv }
+if (-not $uv) { Install-Uv; Ensure-UvPathInSession }
 
 # Re-resolve after install (may require new session on some setups)
 $uv = Get-Command uv -ErrorAction SilentlyContinue
 if (-not $uv) {
-    Write-Warning "[warn] uv command not found after installation. You may need to open a new PowerShell window."
-    Write-Host   "[info] After restarting, run: uv sync"
+    if (-not $addedPath) { Ensure-UvPathInSession; $uv = Get-Command uv -ErrorAction SilentlyContinue }
+    if (-not $uv) {
+        Write-Warning "[warn] uv command not found after installation. You may need to open a new PowerShell window."
+        Write-Host   "[info] After restarting, run: uv sync"
+    }
 } else {
     Write-Host "[setup] Syncing Python environment with uv..."
     try { uv sync } catch { Write-Error "[error] uv sync failed. Check pyproject.toml or run manually." }

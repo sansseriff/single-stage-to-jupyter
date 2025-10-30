@@ -292,6 +292,25 @@ function Write-State {
     Write-Utf8NoBomLF -Path $STATE_FILE -Content $json
 }
 
+function Ensure-UvPathInSession {
+    # Add common user-local bin directories to PATH for this session so newly installed uv is discoverable
+    $candidates = @()
+    foreach ($p in @("$HOME\.local\bin", "$env:USERPROFILE\.local\bin", "$HOME\.cargo\bin", "$env:USERPROFILE\.cargo\bin")) {
+        if ($p -and -not ($candidates -contains $p)) { $candidates += $p }
+    }
+    foreach ($dir in $candidates) {
+        if (Test-Path $dir) {
+            $parts = ($env:Path -split ';')
+            $exists = $false
+            foreach ($pp in $parts) { if ($pp.TrimEnd('\\') -ieq $dir.TrimEnd('\\')) { $exists = $true; break } }
+            if (-not $exists) {
+                $env:Path = "$dir;$env:Path"
+                Write-Host "[setup] Added $dir to current session PATH"
+            }
+        }
+    }
+}
+
 function Setup-UvEnvironment {
     if ($Yes) { $should='y' } else { $should = Read-Host "`nThis template uses the uv Python package manager. Install uv (if needed) and initialize a local environment? [Y/n]" }
     if ($should -match '^(n|no)$') { Write-Host "[info] Skipping uv setup."; return }
@@ -301,11 +320,9 @@ function Setup-UvEnvironment {
     if (-not $uv) {
         Write-Host "[setup] uv not found. Installing via official script..."
         try {
-            # Official installer for Windows
-            $ps = iwr https://astral.sh/uv/install.ps1 -UseBasicParsing
-            if ($ps -and $ps.Content) {
-                iex $ps.Content
-            }
+            # Install in current session; avoids nested process and keeps PATH changes visible here
+            irm https://astral.sh/uv/install.ps1 | iex
+            Ensure-UvPathInSession
         } catch {
             Write-Warning "[error] Failed to install uv. Install manually: https://docs.astral.sh/uv/"
             return
@@ -317,7 +334,15 @@ function Setup-UvEnvironment {
         Write-Host "[setup] ✓ Python environment synchronized."
         Write-Host "[tip] Run Python with: uv run your_script.py"
     } else {
-        Write-Warning "[warn] uv not found after installation. You may need to start a new PowerShell session. Then run: uv sync"
+        Ensure-UvPathInSession
+        $uv = Get-Command uv -ErrorAction SilentlyContinue
+        if ($uv) {
+            try { uv sync } catch { Write-Warning "[error] uv sync failed. Run manually later." }
+            Write-Host "[setup] ✓ Python environment synchronized."
+            Write-Host "[tip] Run Python with: uv run your_script.py"
+        } else {
+            Write-Warning "[warn] uv not found after installation. You may need to start a new PowerShell session. Then run: uv sync"
+        }
     }
 }
 
