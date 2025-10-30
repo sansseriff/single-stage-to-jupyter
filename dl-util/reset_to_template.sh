@@ -18,6 +18,16 @@ if [[ -f dl-util/.s2j-state.json ]]; then
     echo "  ✓ Removed bootstrap state"
 fi
 
+# Remove generated download scripts (now built from templates)
+if [[ -f dl-util/dl.sh ]]; then
+    rm -f dl-util/dl.sh
+    echo "  ✓ Removed generated dl-util/dl.sh"
+fi
+if [[ -f dl-util/dl.ps1 ]]; then
+    rm -f dl-util/dl.ps1
+    echo "  ✓ Removed generated dl-util/dl.ps1"
+fi
+
 # Restore original README if backup exists
 if [[ -f README.template.md ]]; then
     mv README.template.md README.md

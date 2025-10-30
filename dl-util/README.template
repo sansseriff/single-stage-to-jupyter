@@ -6,7 +6,7 @@ Brief description: Replace this paragraph with a short overview of your dataset 
 
 <!-- QUICK_INSTALL_START -->
 
-Run this in a terminal to clone and set up the project:
+Run one of these commands in a terminal to clone and set up the project (requires that git is installed):
 
 ⚠️ Warning: Only use single line installers like these if you trust the creator of this repository. 
 

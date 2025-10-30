@@ -6,11 +6,11 @@
 
 $ErrorActionPreference = 'Stop'
 
-# IMPORTANT: This placeholder is updated by initialize_repo.sh during bootstrap.
+# IMPORTANT: This value is set by initialize_repo.sh during bootstrap.
 # Do not edit manually unless you know what you're doing.
-$RepoUrl = "https://github.com/testuser/testrepo.git"
+$RepoUrl = "__REPO_URL__"
 
-if ([string]::IsNullOrWhiteSpace($RepoUrl) -or $RepoUrl -eq "https://github.com/testuser/testrepo.git") {
+if ([string]::IsNullOrWhiteSpace($RepoUrl) -or $RepoUrl -eq "__REPO_URL__") {
     Write-Error "Repo URL is not configured. Ask the repo owner to run the bootstrap script."
 }
 
