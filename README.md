@@ -4,7 +4,11 @@ Do you ever find yourself with some Jupyter notebooks or Python files that you w
 
 This template uses GitHub Pages to host a download script and the [uv package & project manager](https://docs.astral.sh/uv/) for seamless dependency installation. While it's configured to initialize and launch Jupyter Lab by default, it's useful for sharing any Python code with minimal setup required.
 
-# How this works
+## Demo
+
+Try running the download-and-install command in your terminal from the demo repository [here](https://github.com/sansseriff/single-stage-demo). Note that this command will attempt to install the uv package and project manager for python.
+
+## How this works
 
 <!-- QUICK_INSTALL_START -->
 
@@ -26,8 +30,8 @@ Yes, single-line installers like this download a script and immediately run it. 
 
 Follow these steps to create your own single-line downloadable analysis repository from this template.
 
-1. Click "Use this template" on GitHub to create your repo from this template.
-2. Enable GitHub Pages from GitHub Actions.
+1. Click "Use this template" on GitHub to create your repo from this template (assuming you're logged into your github account).
+2. In the new repository, enable GitHub Pages from GitHub Actions.
 
    - Click settings:![settings](./dl-util/template_images/settings.png)
    - Click "Pages" on the left side, then click "GitHub Actions" from the dropdown labeled "Source" ![actions](./dl-util/template_images/actions.png)
