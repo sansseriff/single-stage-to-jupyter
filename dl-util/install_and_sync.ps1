@@ -71,6 +71,20 @@ if (-not $uv) {
     } catch {
         Write-Warning "[warn] ipython kernel registration skipped."
     }
+
+    try {
+        Write-Host "[setup] Installing nbstripout git filter..."
+        uv run nbstripout --install
+    } catch {
+        Write-Warning "[warn] nbstripout git filter installation skipped."
+    }
+
+    try {
+        Write-Host "[setup] Configuring nbstripout extrakeys..."
+        git config filter.nbstripout.extrakeys 'metadata.kernelspec'
+    } catch {
+        Write-Warning "[warn] nbstripout extrakeys config skipped."
+    }
 }
 
 function Should-Launch {
