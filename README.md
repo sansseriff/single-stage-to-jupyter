@@ -114,6 +114,10 @@ You can learn more [here](https://docs.astral.sh/uv/guides/projects/) about how 
 - Run a Python file using the local environment with `uv run <python-file>`
 - Run a Jupyter Lab server using the local environment with `uv run --with jupyter jupyter lab`
 
+## Notebook output stripping with nbstripout
+
+This template uses [nbstripout](https://github.com/kynan/nbstripout) to automatically strip cell outputs and metadata from Jupyter notebooks before each commit. This keeps diffs readable and avoids bloating git history with large embedded plots or kernel metadata. The `.gitattributes` file wires the filter to all `*.ipynb` files, and the `install_and_sync` scripts register it as a git filter on first setup — so it works automatically for anyone who clones and sets up the repo.
+
 ## Integrity check
 
 The generated and customized project supports SHA256 hash verification, as it requires running scripts on your machine initiated by the single download-and-install command.
