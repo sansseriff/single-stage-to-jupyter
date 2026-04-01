@@ -15,4 +15,5 @@ src/.ipynb_checkpoints/
 
 .DS_Store
 
-output/
+output/*
+!output/.gitkeep
