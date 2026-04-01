@@ -1,0 +1,188 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "d13dbce3",
+   "metadata": {},
+   "source": [
+    "## Electrical detector demo analysis\n",
+    "This notebook explores a simulated dataset from an electrical detector. The generator produces a multi-channel time series with drift, noise, and random event pulses.\n",
+    "\n",
+    "Data file: `data/detector_readings.csv`\n",
+    "\n",
+    "What we'll do:\n",
+    "\n",
+    "Load the dataset\n",
+    "- Quick peek at schema and basic stats\n",
+    "- Plot signal over time with event markers\n",
+    "- Aggregate event rates per minute by detector\n",
+    "- Check temperature vs. signal correlation"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "8de6ed85",
+   "metadata": {
+    "vscode": {
+     "languageId": "plaintext"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "from pathlib import Path\n",
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "DATA_FILE = Path('../data/demo_data.csv').resolve()\n",
+    "OUTPUT_DIR = Path('../output').resolve()\n",
+    "OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n",
+    "\n",
+    "if not DATA_FILE.exists():\n",
+    "    # Generate on the fly if missing\n",
+    "    from generate_detector_data import generate_detector_data, save_detector_data\n",
+    "    df_tmp = generate_detector_data()\n",
+    "    save_detector_data(df_tmp, DATA_FILE)\n",
+    "\n",
+    "# Load\n",
+    "parse_dates = ['timestamp']\n",
+    "df = pd.read_csv(DATA_FILE, parse_dates=parse_dates)\n",
+    "\n",
+    "# Basic info\n",
+    "print('Rows:', len(df))\n",
+    "print('Detectors:', sorted(df.detector_id.unique()))\n",
+    "df.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "1419f45c",
+   "metadata": {
+    "vscode": {
+     "languageId": "plaintext"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# Summary stats per detector\n",
+    "summary = df.groupby('detector_id')['signal_mV'].agg(['mean', 'std', 'min', 'max']).round(2)\n",
+    "summary"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "34edbe62",
+   "metadata": {
+    "vscode": {
+     "languageId": "plaintext"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# Plot a time window for one detector with events\n",
+    "import matplotlib.dates as mdates\n",
+    "\n",
+    "one = df[df['detector_id'] == 'D1'].copy()\n",
+    "# Focus on first 2 minutes for readability\n",
+    "start_ts = one['timestamp'].min()\n",
+    "mask = (one['timestamp'] >= start_ts) & (one['timestamp'] < start_ts + pd.Timedelta(minutes=2))\n",
+    "win = one.loc[mask]\n",
+    "\n",
+    "fig, ax = plt.subplots(figsize=(10, 4))\n",
+    "ax.plot(win['timestamp'], win['signal_mV'], label='signal (mV)', color='#1f77b4', lw=1)\n",
+    "# Mark events\n",
+    "ev = win[win['is_event'] == 1]\n",
+    "ax.scatter(ev['timestamp'], ev['signal_mV'], color='crimson', s=20, label='events', zorder=3)\n",
+    "\n",
+    "ax.set_title('Detector D1 — signal with events (first 2 minutes)')\n",
+    "ax.set_ylabel('mV')\n",
+    "ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))\n",
+    "ax.grid(True, alpha=0.3)\n",
+    "ax.legend()\n",
+    "fig.tight_layout()\n",
+    "fig.savefig(OUTPUT_DIR / 'd1_signal_window.png', dpi=150)\n",
+    "plt.close(fig)\n",
+    "\n",
+    "print('Saved figure:', OUTPUT_DIR / 'd1_signal_window.png')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "a5d8e6df",
+   "metadata": {
+    "vscode": {
+     "languageId": "plaintext"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# Event rate per minute, by detector\n",
+    "rate = (\n",
+    "    df.set_index('timestamp')\n",
+    "      .groupby('detector_id')['is_event']\n",
+    "      .resample('1min').sum()\n",
+    "      .rename('events_per_min')\n",
+    "      .reset_index()\n",
+    ")\n",
+    "\n",
+    "pivot = rate.pivot(index='timestamp', columns='detector_id', values='events_per_min').fillna(0)\n",
+    "ax = pivot.plot(figsize=(10, 4), marker='o', lw=1)\n",
+    "ax.set_title('Event rate per minute by detector')\n",
+    "ax.set_ylabel('events/min')\n",
+    "ax.grid(True, alpha=0.3)\n",
+    "fig = ax.get_figure()\n",
+    "fig.tight_layout()\n",
+    "fig.savefig(OUTPUT_DIR / 'event_rate_per_min.png', dpi=150)\n",
+    "plt.show()\n",
+    "\n",
+    "\n",
+    "print('Saved figure:', OUTPUT_DIR / 'event_rate_per_min.png')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "eb5060fe",
+   "metadata": {
+    "vscode": {
+     "languageId": "plaintext"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# Temperature vs signal (downsample to 1s to reduce points)\n",
+    "agg = (\n",
+    "    df.set_index('timestamp')\n",
+    "      .groupby('detector_id')[['signal_mV', 'temperature_C']]\n",
+    "      .resample('1s').mean()\n",
+    "      .reset_index()\n",
+    ")\n",
+    "\n",
+    "fig, ax = plt.subplots(figsize=(6, 5))\n",
+    "for det, sub in agg.groupby('detector_id'):\n",
+    "    ax.scatter(sub['temperature_C'], sub['signal_mV'], s=6, alpha=0.5, label=det)\n",
+    "ax.set_title('Temperature vs signal')\n",
+    "ax.set_xlabel('Temperature (°C)')\n",
+    "ax.set_ylabel('Signal (mV)')\n",
+    "ax.grid(True, alpha=0.3)\n",
+    "ax.legend(title='detector')\n",
+    "fig.tight_layout()\n",
+    "fig.savefig(OUTPUT_DIR / 'temp_vs_signal.png', dpi=150)\n",
+    "plt.show()\n",
+    "\n",
+    "print('Saved figure:', OUTPUT_DIR / 'temp_vs_signal.png')"
+   ]
+  }
+ ],
+ "metadata": {
+  "language_info": {
+   "name": "python"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

@@ -13,6 +13,18 @@ $repoRoot  = Split-Path -Parent $scriptDir
 Set-Location $repoRoot
 
 Write-Host "[setup] Working directory: $repoRoot"
+
+# Read project type from state file (default to jupyter for backward compat)
+$StateFile = "dl-util/.s2j-state.json"
+$ProjectType = "jupyter"
+if (Test-Path $StateFile) {
+    $stateContent = Get-Content $StateFile -Raw -ErrorAction SilentlyContinue
+    if ($stateContent -match '"project_type"\s*:\s*"([^"]+)"') {
+        $ProjectType = $Matches[1]
+    }
+}
+Write-Host "[setup] Project type: $ProjectType"
+
 Write-Host "[setup] Checking for uv..."
 
 function Install-Uv {
@@ -64,46 +76,53 @@ if (-not $uv) {
     Write-Host "[setup] Syncing Python environment with uv..."
     try { uv sync } catch { Write-Error "[error] uv sync failed. Check pyproject.toml or run manually." }
 
-    # Optional: register a kernel name tied to this environment for convenience
-    try {
-        Write-Host "[setup] Registering IPython kernel (optional)..."
-        uv run ipython kernel install --user --name="project"
-    } catch {
-        Write-Warning "[warn] ipython kernel registration skipped."
-    }
+    if ($ProjectType -eq "jupyter") {
+        # Register a kernel name tied to this environment for convenience
+        try {
+            Write-Host "[setup] Registering IPython kernel (optional)..."
+            uv run ipython kernel install --user --name="project"
+        } catch {
+            Write-Warning "[warn] ipython kernel registration skipped."
+        }
 
-    try {
-        Write-Host "[setup] Installing nbstripout git filter..."
-        uv run nbstripout --install
-    } catch {
-        Write-Warning "[warn] nbstripout git filter installation skipped."
-    }
+        try {
+            Write-Host "[setup] Installing nbstripout git filter..."
+            uv run nbstripout --install
+        } catch {
+            Write-Warning "[warn] nbstripout git filter installation skipped."
+        }
 
-    try {
-        Write-Host "[setup] Configuring nbstripout extrakeys..."
-        git config filter.nbstripout.extrakeys 'metadata.kernelspec'
-    } catch {
-        Write-Warning "[warn] nbstripout extrakeys config skipped."
+        try {
+            Write-Host "[setup] Configuring nbstripout extrakeys..."
+            git config filter.nbstripout.extrakeys 'metadata.kernelspec'
+        } catch {
+            Write-Warning "[warn] nbstripout extrakeys config skipped."
+        }
+    } else {
+        Write-Host "[setup] Python-only project — skipping Jupyter, nbstripout, and kernel registration."
+        Write-Host "[tip] Run your script with: uv run src/demo_analysis.py"
     }
 }
 
-function Should-Launch {
-    $val = $env:START_JUPYTER
-    switch -Regex ($val) {
-        '^(1|yes|true)$'  { return $true }
-        '^(0|no|false)$'  { return $false }
+if ($ProjectType -eq "jupyter") {
+    function Should-Launch {
+        $val = $env:START_JUPYTER
+        switch -Regex ($val) {
+            '^(1|yes|true)$'  { return $true }
+            '^(0|no|false)$'  { return $false }
+        }
+        # Show a helpful hint before prompting
+        Write-Host ''
+        Write-Host 'New to using uv to manage python projects? Check the "uv Usage hints" in the README of this project' -ForegroundColor Cyan
+        $ans = Read-Host "Start Jupyter Lab now? [Y/n]"
+        if ($ans -match '^(n|no)$' -or $ans -match '^[Nn]') { return $false }
+        return $true
     }
-    # Show a helpful hint before prompting
-    Write-Host ''
-    Write-Host 'New to using uv to manage python projects? Check the "uv Usage hints" in the README of this project' -ForegroundColor Cyan
-    $ans = Read-Host "Start Jupyter Lab now? [Y/n]"
-    if ($ans -match '^(n|no)$' -or $ans -match '^[Nn]') { return $false }
-    return $true
-}
 
-if (Should-Launch) {
-    Write-Host "[setup] Launching Jupyter Lab... (Ctrl+C to stop)"
-    uv run --with jupyter jupyter lab
-} else {
-    Write-Host "[setup] Skipping Jupyter Lab launch. You can start it later with: uv run --with jupyter jupyter lab"
+    if (Should-Launch) {
+        Write-Host "[setup] Launching Jupyter Lab... (Ctrl+C to stop)"
+        uv run --with jupyter jupyter lab
+    } else {
+        Write-Host "[setup] Skipping Jupyter Lab launch. You can start it later with: uv run --with jupyter jupyter lab"
+    }
 }

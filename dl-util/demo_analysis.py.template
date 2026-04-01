@@ -1,0 +1,91 @@
+"""Demo analysis script for __REPO_NAME__.
+
+Loads the sample detector dataset from data/demo_data.csv, produces summary
+statistics, and saves two figures to output/.
+
+Run with:
+    uv run src/demo_analysis.py
+"""
+
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+DATA_FILE = Path("data/demo_data.csv").resolve()
+OUTPUT_DIR = Path("output").resolve()
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def load_data(path: Path) -> pd.DataFrame:
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Data file not found: {path}\n"
+            "Place demo_data.csv in the data/ directory before running."
+        )
+    return pd.read_csv(path, parse_dates=["timestamp"])
+
+
+def summarise(df: pd.DataFrame) -> None:
+    print(f"Rows: {len(df)}")
+    print(f"Detectors: {sorted(df.detector_id.unique())}")
+    summary = df.groupby("detector_id")["signal_mV"].agg(["mean", "std", "min", "max"]).round(2)
+    print("\nSummary stats per detector:")
+    print(summary.to_string())
+
+
+def plot_event_rate(df: pd.DataFrame, out_dir: Path) -> None:
+    rate = (
+        df.set_index("timestamp")
+        .groupby("detector_id")["is_event"]
+        .resample("1min")
+        .sum()
+        .rename("events_per_min")
+        .reset_index()
+    )
+    pivot = rate.pivot(index="timestamp", columns="detector_id", values="events_per_min").fillna(0)
+    ax = pivot.plot(figsize=(10, 4), marker="o", lw=1)
+    ax.set_title("Event rate per minute by detector")
+    ax.set_ylabel("events/min")
+    ax.grid(True, alpha=0.3)
+    fig = ax.get_figure()
+    fig.tight_layout()
+    out = out_dir / "event_rate_per_min.png"
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    print(f"Saved: {out}")
+
+
+def plot_temp_vs_signal(df: pd.DataFrame, out_dir: Path) -> None:
+    agg = (
+        df.set_index("timestamp")
+        .groupby("detector_id")[["signal_mV", "temperature_C"]]
+        .resample("1s")
+        .mean()
+        .reset_index()
+    )
+    fig, ax = plt.subplots(figsize=(6, 5))
+    for det, sub in agg.groupby("detector_id"):
+        ax.scatter(sub["temperature_C"], sub["signal_mV"], s=6, alpha=0.5, label=det)
+    ax.set_title("Temperature vs signal")
+    ax.set_xlabel("Temperature (°C)")
+    ax.set_ylabel("Signal (mV)")
+    ax.grid(True, alpha=0.3)
+    ax.legend(title="detector")
+    fig.tight_layout()
+    out = out_dir / "temp_vs_signal.png"
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    print(f"Saved: {out}")
+
+
+def main() -> None:
+    df = load_data(DATA_FILE)
+    summarise(df)
+    plot_event_rate(df, OUTPUT_DIR)
+    plot_temp_vs_signal(df, OUTPUT_DIR)
+
+
+if __name__ == "__main__":
+    main()

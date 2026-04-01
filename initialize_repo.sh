@@ -21,13 +21,15 @@ fi
 
 usage() {
 	cat <<'USAGE'
-Usage: ./initialize_repo.sh [--user <github_user>] [--repo <repo_name>] [--domain <custom.domain>] [--yes]
+Usage: ./initialize_repo.sh [--user <github_user>] [--repo <repo_name>] [--domain <custom.domain>] [--yes] [--jupyter|--python]
 
 Options:
 	--user     GitHub username or org (default: inferred from git remote if available)
 	--repo     Repository name (default: inferred from git remote or current folder)
 	--domain   Custom domain to use for GitHub Pages (overrides CNAME / github.io URL)
 	--yes      Non-interactive; accept inferred defaults without prompting
+	--jupyter  Jupyter-centric project: keep notebook in src/, install nbstripout (default)
+	--python   Python-only project: demo script in src/, no Jupyter, no nbstripout
 USAGE
 }
 
@@ -36,6 +38,7 @@ REPO_NAME=""
 CUSTOM_DOMAIN=""
 ASSUME_YES=false
 REGEN_README=false
+PROJECT_TYPE=""   # "jupyter" or "python"
 STATE_FILE="dl-util/.s2j-state.json"
 
 while [[ $# -gt 0 ]]; do
@@ -46,6 +49,8 @@ while [[ $# -gt 0 ]]; do
 		--domain) CUSTOM_DOMAIN=${2:-}; shift 2 ;;
 		-y|--yes) ASSUME_YES=true; shift ;;
 		--regen-readme) REGEN_README=true; shift ;;
+		--jupyter) PROJECT_TYPE="jupyter"; shift ;;
+		--python)  PROJECT_TYPE="python";  shift ;;
 		*) echo "Unknown argument: $1"; usage; exit 1 ;;
 	esac
 done
@@ -87,6 +92,21 @@ if ! $ASSUME_YES; then
 	REPO_NAME=${tmp:-$REPO_NAME}
 	read -r -p "Custom domain for Pages (blank to use github.io) [$CUSTOM_DOMAIN]: " tmp || true
 	CUSTOM_DOMAIN=${tmp:-$CUSTOM_DOMAIN}
+fi
+
+if [[ -z "$PROJECT_TYPE" ]]; then
+	if $ASSUME_YES; then
+		PROJECT_TYPE="jupyter"   # backward-compat default
+	else
+		printf "\nProject type:\n"
+		printf "  [j] Jupyter-centric — notebook in src/, nbstripout git filter, Jupyter launch\n"
+		printf "  [p] Python-only     — Python script in src/, no Jupyter, no nbstripout\n"
+		read -r -p "Project type [j/p, default: j]: " tmp || true
+		case "${tmp:-}" in
+			p|P|python|Python) PROJECT_TYPE="python"  ;;
+			*)                  PROJECT_TYPE="jupyter" ;;
+		esac
+	fi
 fi
 
 if [[ -z "$GH_USER" || -z "$REPO_NAME" ]]; then
@@ -254,6 +274,8 @@ ensure_files_exist() {
 	[[ -d dl-util ]] || { echo "Error: dl-util/ directory not found" >&2; exit 1; }
 	[[ -f dl-util/dl.sh.template ]] || { echo "Error: dl-util/dl.sh.template not found" >&2; exit 1; }
 	[[ -f dl-util/dl.ps1.template ]] || { echo "Error: dl-util/dl.ps1.template not found" >&2; exit 1; }
+	[[ -f dl-util/demo_analysis.ipynb.template ]] || { echo "Error: dl-util/demo_analysis.ipynb.template not found" >&2; exit 1; }
+	[[ -f dl-util/demo_analysis.py.template ]] || { echo "Error: dl-util/demo_analysis.py.template not found" >&2; exit 1; }
 }
 
 compute_sha() {
@@ -280,7 +302,8 @@ write_state() {
   "repo_name": "$REPO_NAME",
   "repo_url": "$REPO_URL",
   "pages_base": "$PAGES_BASE",
-  "dl_sh_sha256": "$SHA256_DL_SH"
+  "dl_sh_sha256": "$SHA256_DL_SH",
+  "project_type": "$PROJECT_TYPE"
 }
 JSON
 }
@@ -426,6 +449,82 @@ setup_uv_environment() {
 	fi
 }
 
+configure_project_type() {
+	if [[ "$PROJECT_TYPE" == "python" ]]; then
+		echo "[setup] Configuring for Python-only project..."
+
+		# Update pyproject.toml: set name and remove jupyter/nbstripout deps
+		if [[ -f pyproject.toml ]]; then
+			if sed --version >/dev/null 2>&1; then
+				# GNU sed
+				sed -i "s@^name = \".*\"@name = \"${REPO_NAME}\"@" pyproject.toml
+				sed -i '/[[:space:]]*"ipykernel[^"]*",\{0,1\}/d' pyproject.toml
+				sed -i '/[[:space:]]*"nbstripout[^"]*",\{0,1\}/d' pyproject.toml
+				sed -i '/^\[dependency-groups\]/,/^$/d' pyproject.toml
+			else
+				# BSD sed (macOS)
+				sed -i '' "s@^name = \".*\"@name = \"${REPO_NAME}\"@" pyproject.toml
+				sed -i '' '/[[:space:]]*"ipykernel[^"]*",\{0,1\}/d' pyproject.toml
+				sed -i '' '/[[:space:]]*"nbstripout[^"]*",\{0,1\}/d' pyproject.toml
+				sed -i '' '/^\[dependency-groups\]/,/^$/d' pyproject.toml
+			fi
+			echo "[setup] Updated pyproject.toml (removed ipykernel, nbstripout; set name)."
+		fi
+
+		# Remove nbstripout filter from .gitattributes
+		if [[ -f .gitattributes ]]; then
+			if sed --version >/dev/null 2>&1; then
+				sed -i '/nbstripout/d' .gitattributes
+			else
+				sed -i '' '/nbstripout/d' .gitattributes
+			fi
+			echo "[setup] Removed nbstripout filter from .gitattributes."
+		fi
+
+		# Replace notebook with demo Python script in src/
+		if [[ -f src/data_analysis.ipynb ]]; then
+			rm src/data_analysis.ipynb
+			echo "[setup] Removed src/data_analysis.ipynb."
+		fi
+		if [[ -f dl-util/demo_analysis.py.template ]]; then
+			cp dl-util/demo_analysis.py.template src/demo_analysis.py
+			# Replace __REPO_NAME__ placeholder in the copied script
+			if sed --version >/dev/null 2>&1; then
+				sed -i "s@__REPO_NAME__@${REPO_NAME}@g" src/demo_analysis.py
+			else
+				sed -i '' "s@__REPO_NAME__@${REPO_NAME}@g" src/demo_analysis.py
+			fi
+			echo "[setup] Created src/demo_analysis.py from template."
+		fi
+
+	else
+		echo "[setup] Configuring for Jupyter-centric project..."
+
+		# Copy notebook template into src/
+		cp dl-util/demo_analysis.ipynb.template src/data_analysis.ipynb
+		echo "[setup] Created src/data_analysis.ipynb from template."
+
+		# Update pyproject.toml name unconditionally
+		if [[ -f pyproject.toml ]]; then
+			if sed --version >/dev/null 2>&1; then
+				sed -i "s@^name = \".*\"@name = \"${REPO_NAME}\"@" pyproject.toml
+			else
+				sed -i '' "s@^name = \".*\"@name = \"${REPO_NAME}\"@" pyproject.toml
+			fi
+			echo "[setup] Updated pyproject.toml name to '${REPO_NAME}'."
+		fi
+
+		# Install nbstripout on this machine so the author's git history stays clean too
+		if command -v uv >/dev/null 2>&1; then
+			uv run nbstripout --install || echo "[warn] nbstripout install skipped."
+			git config filter.nbstripout.extrakeys 'metadata.kernelspec' || true
+			echo "[setup] nbstripout git filter installed."
+		else
+			echo "[warn] uv not available; skipping nbstripout install. Run manually: uv run nbstripout --install"
+		fi
+	fi
+}
+
 ensure_files_exist
 update_dl_sh
 update_dl_ps1
@@ -433,8 +532,9 @@ write_repo_url_txt
 compute_sha
 rewrite_index_html
 maybe_replace_readme
-write_state
 setup_uv_environment
+configure_project_type
+write_state
 
 printf "\nDone. Next steps:\n"
 printf "  1) Commit and push these changes to GitHub.\n"

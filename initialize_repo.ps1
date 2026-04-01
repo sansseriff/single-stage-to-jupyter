@@ -11,6 +11,8 @@ param(
     [switch]$Yes,
     [Alias('regen')]
     [switch]$RegenReadme,
+    [switch]$Jupyter,
+    [switch]$Python,
     # Guard: absorb any stray `-and` passed by shells or tooling; ignored by script logic
     [switch]$and
 )
@@ -26,7 +28,7 @@ trap {
 
 function Write-Usage {
 @'
-Usage: pwsh ./initialize_repo.ps1 [-User <github_user>] [-Repo <repo_name>] [-Domain <custom.domain>] [-Yes] [-RegenReadme]
+Usage: pwsh ./initialize_repo.ps1 [-User <github_user>] [-Repo <repo_name>] [-Domain <custom.domain>] [-Yes] [-RegenReadme] [-Jupyter|-Python]
 
 Options:
   -User         GitHub username or org (default: inferred from git remote if available)
@@ -34,6 +36,8 @@ Options:
   -Domain       Custom domain to use for GitHub Pages (overrides CNAME / github.io URL)
   -Yes          Non-interactive; accept inferred defaults without prompting
   -RegenReadme  Force regenerating README from template
+  -Jupyter      Jupyter-centric project: keep notebook in src/, install nbstripout (default)
+  -Python       Python-only project: demo script in src/, no Jupyter, no nbstripout
 '@
 }
 
@@ -80,6 +84,20 @@ if (-not $Yes) {
     $tmp = Read-Host "Custom domain for Pages (blank to use github.io) [$Domain]"; if ($tmp -ne $null) { if ($tmp -ne '') { $Domain = $tmp } }
 }
 
+# Resolve project type
+$ProjectType = if ($Python) { 'python' } elseif ($Jupyter) { 'jupyter' } else { '' }
+if (-not $ProjectType) {
+    if ($Yes) {
+        $ProjectType = 'jupyter'   # backward-compat default
+    } else {
+        Write-Host "`nProject type:"
+        Write-Host "  [j] Jupyter-centric — notebook in src/, nbstripout git filter, Jupyter launch"
+        Write-Host "  [p] Python-only     — Python script in src/, no Jupyter, no nbstripout"
+        $tmp = Read-Host "Project type [j/p, default: j]"
+        $ProjectType = if ($tmp -match '^(p|P|python|Python)$') { 'python' } else { 'jupyter' }
+    }
+}
+
 if (-not $User -or -not $Repo) {
     Write-Error "Could not determine GitHub user or repo name."; exit 1
 }
@@ -100,7 +118,7 @@ Write-Host "  Pages base:  $PagesBase"
 Write-Host "  One-liner:   $DownloadCmd"
 
 function Ensure-Files-Exist {
-    foreach ($p in 'dl-util','dl-util/dl.sh.template','dl-util/dl.ps1.template','dl-util/README.template') {
+    foreach ($p in 'dl-util','dl-util/dl.sh.template','dl-util/dl.ps1.template','dl-util/README.template','dl-util/demo_analysis.ipynb.template','dl-util/demo_analysis.py.template') {
         if (-not (Test-Path $p)) { Write-Error "Required file not found: $p"; exit 1 }
     }
 }
@@ -299,12 +317,13 @@ function Maybe-Replace-Readme {
 
 function Write-State {
     $obj = [ordered]@{
-        timestamp   = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-        gh_user     = $User
-        repo_name   = $Repo
-        repo_url    = $RepoUrl
-        pages_base  = $PagesBase
-        dl_sh_sha256= $Sha256DlSh
+        timestamp    = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        gh_user      = $User
+        repo_name    = $Repo
+        repo_url     = $RepoUrl
+        pages_base   = $PagesBase
+        dl_sh_sha256 = $Sha256DlSh
+        project_type = $ProjectType
     }
     $json = $obj | ConvertTo-Json -Depth 3
     Write-Utf8NoBomLF -Path $STATE_FILE -Content $json
@@ -364,6 +383,75 @@ function Setup-UvEnvironment {
     }
 }
 
+function Configure-ProjectType {
+    if ($ProjectType -eq 'python') {
+        Write-Host "[setup] Configuring for Python-only project..."
+
+        # Update pyproject.toml: set name and remove jupyter/nbstripout deps
+        if (Test-Path 'pyproject.toml') {
+            $toml = Get-Content -Raw -Encoding UTF8 'pyproject.toml'
+            # Update name field
+            $toml = [regex]::Replace($toml, '(?m)^name\s*=\s*"[^"]*"', "name = `"$Repo`"")
+            # Remove ipykernel and nbstripout dependency lines
+            $toml = [regex]::Replace($toml, '(?m)^\s*"ipykernel[^"]*",?\r?\n', '')
+            $toml = [regex]::Replace($toml, '(?m)^\s*"nbstripout[^"]*",?\r?\n', '')
+            # Remove [dependency-groups] section (and the lines that follow until next blank or section)
+            $toml = [regex]::Replace($toml, '(?m)^\[dependency-groups\]\r?\n(.*\r?\n)*?(\r?\n|$)', '')
+            Write-Utf8NoBomLF -Path 'pyproject.toml' -Content $toml
+            Write-Host "[setup] Updated pyproject.toml (removed ipykernel, nbstripout; set name)."
+        }
+
+        # Remove nbstripout filter line from .gitattributes
+        if (Test-Path '.gitattributes') {
+            $attrs = Get-Content -Raw -Encoding UTF8 '.gitattributes'
+            $attrs = [regex]::Replace($attrs, '(?m)^.*nbstripout.*\r?\n?', '')
+            Write-Utf8NoBomLF -Path '.gitattributes' -Content $attrs
+            Write-Host "[setup] Removed nbstripout filter from .gitattributes."
+        }
+
+        # Replace notebook with demo Python script in src/
+        if (Test-Path 'src/data_analysis.ipynb') {
+            Remove-Item 'src/data_analysis.ipynb'
+            Write-Host "[setup] Removed src/data_analysis.ipynb."
+        }
+        if (Test-Path 'dl-util/demo_analysis.py.template') {
+            $script = Get-Content -Raw -Encoding UTF8 'dl-util/demo_analysis.py.template'
+            $script = $script.Replace('__REPO_NAME__', $Repo)
+            Write-Utf8NoBomLF -Path 'src/demo_analysis.py' -Content $script
+            Write-Host "[setup] Created src/demo_analysis.py from template."
+        }
+
+    } else {
+        Write-Host "[setup] Configuring for Jupyter-centric project..."
+
+        # Copy notebook template into src/
+        Copy-Item -Force 'dl-util/demo_analysis.ipynb.template' 'src/data_analysis.ipynb'
+        Write-Host "[setup] Created src/data_analysis.ipynb from template."
+
+        # Update pyproject.toml name unconditionally
+        if (Test-Path 'pyproject.toml') {
+            $toml = Get-Content -Raw -Encoding UTF8 'pyproject.toml'
+            $toml = [regex]::Replace($toml, '(?m)^name\s*=\s*"[^"]*"', "name = `"$Repo`"")
+            Write-Utf8NoBomLF -Path 'pyproject.toml' -Content $toml
+            Write-Host "[setup] Updated pyproject.toml name to '$Repo'."
+        }
+
+        # Install nbstripout on this machine so the author's git history stays clean too
+        $uv = Get-Command uv -ErrorAction SilentlyContinue
+        if ($uv) {
+            try {
+                uv run nbstripout --install
+                git config filter.nbstripout.extrakeys 'metadata.kernelspec'
+                Write-Host "[setup] nbstripout git filter installed."
+            } catch {
+                Write-Warning "[warn] nbstripout install skipped."
+            }
+        } else {
+            Write-Warning "[warn] uv not available; skipping nbstripout install. Run manually: uv run nbstripout --install"
+        }
+    }
+}
+
 Ensure-Files-Exist
 Write-Host "[step] Ensure-Files-Exist completed"
 Update-DlSh
@@ -378,10 +466,12 @@ Rewrite-IndexHtml
 Write-Host "[step] Rewrite-IndexHtml completed"
 Maybe-Replace-Readme
 Write-Host "[step] Maybe-Replace-Readme completed"
-Write-State
-Write-Host "[step] Write-State completed"
 Setup-UvEnvironment
 Write-Host "[step] Setup-UvEnvironment completed"
+Configure-ProjectType
+Write-Host "[step] Configure-ProjectType completed"
+Write-State
+Write-Host "[step] Write-State completed"
 
 Write-Host "`nDone. Next steps:"
 Write-Host "  1) Commit and push these changes to GitHub."
