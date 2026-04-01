@@ -497,6 +497,15 @@ configure_project_type() {
 			echo "[setup] Created src/demo_analysis.py from template."
 		fi
 
+		# Re-sync to apply cleaned pyproject.toml and update uv.lock
+		if command -v uv >/dev/null 2>&1; then
+			uv sync
+			echo "[setup] Python environment re-synced (jupyter/nbstripout removed)."
+		fi
+
+		# Remove .gitkeep now that src/ has a real file
+		rm -f src/.gitkeep
+
 	else
 		echo "[setup] Configuring for Jupyter-centric project..."
 
@@ -522,6 +531,9 @@ configure_project_type() {
 		else
 			echo "[warn] uv not available; skipping nbstripout install. Run manually: uv run nbstripout --install"
 		fi
+
+		# Remove .gitkeep now that src/ has a real file
+		rm -f src/.gitkeep
 	fi
 }
 

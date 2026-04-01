@@ -421,6 +421,16 @@ function Configure-ProjectType {
             Write-Host "[setup] Created src/demo_analysis.py from template."
         }
 
+        # Re-sync to apply cleaned pyproject.toml and update uv.lock
+        $uv = Get-Command uv -ErrorAction SilentlyContinue
+        if ($uv) {
+            try { uv sync; Write-Host "[setup] Python environment re-synced (jupyter/nbstripout removed)." }
+            catch { Write-Warning "[warn] uv sync failed. Run manually: uv sync" }
+        }
+
+        # Remove .gitkeep now that src/ has a real file
+        Remove-Item -Force -ErrorAction SilentlyContinue 'src/.gitkeep'
+
     } else {
         Write-Host "[setup] Configuring for Jupyter-centric project..."
 
@@ -449,6 +459,9 @@ function Configure-ProjectType {
         } else {
             Write-Warning "[warn] uv not available; skipping nbstripout install. Run manually: uv run nbstripout --install"
         }
+
+        # Remove .gitkeep now that src/ has a real file
+        Remove-Item -Force -ErrorAction SilentlyContinue 'src/.gitkeep'
     }
 }
 
