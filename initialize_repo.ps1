@@ -387,18 +387,14 @@ function Configure-ProjectType {
     if ($ProjectType -eq 'python') {
         Write-Host "[setup] Configuring for Python-only project..."
 
-        # Update pyproject.toml: set name and remove jupyter/nbstripout deps
+        # Remove jupyter/nbstripout deps from pyproject.toml
         if (Test-Path 'pyproject.toml') {
             $toml = Get-Content -Raw -Encoding UTF8 'pyproject.toml'
-            # Update name field
-            $toml = [regex]::Replace($toml, '(?m)^name\s*=\s*"[^"]*"', "name = `"$Repo`"")
-            # Remove ipykernel and nbstripout dependency lines
             $toml = [regex]::Replace($toml, '(?m)^\s*"ipykernel[^"]*",?\r?\n', '')
             $toml = [regex]::Replace($toml, '(?m)^\s*"nbstripout[^"]*",?\r?\n', '')
-            # Remove [dependency-groups] section (and the lines that follow until next blank or section)
             $toml = [regex]::Replace($toml, '(?m)^\[dependency-groups\]\r?\n(.*\r?\n)*?(\r?\n|$)', '')
             Write-Utf8NoBomLF -Path 'pyproject.toml' -Content $toml
-            Write-Host "[setup] Updated pyproject.toml (removed ipykernel, nbstripout; set name)."
+            Write-Host "[setup] Updated pyproject.toml (removed ipykernel, nbstripout)."
         }
 
         # Remove nbstripout filter line from .gitattributes
@@ -438,14 +434,6 @@ function Configure-ProjectType {
         Copy-Item -Force 'dl-util/demo_analysis.ipynb.template' 'src/data_analysis.ipynb'
         Write-Host "[setup] Created src/data_analysis.ipynb from template."
 
-        # Update pyproject.toml name unconditionally
-        if (Test-Path 'pyproject.toml') {
-            $toml = Get-Content -Raw -Encoding UTF8 'pyproject.toml'
-            $toml = [regex]::Replace($toml, '(?m)^name\s*=\s*"[^"]*"', "name = `"$Repo`"")
-            Write-Utf8NoBomLF -Path 'pyproject.toml' -Content $toml
-            Write-Host "[setup] Updated pyproject.toml name to '$Repo'."
-        }
-
         # Install nbstripout on this machine so the author's git history stays clean too
         $uv = Get-Command uv -ErrorAction SilentlyContinue
         if ($uv) {
@@ -479,6 +467,17 @@ Rewrite-IndexHtml
 Write-Host "[step] Rewrite-IndexHtml completed"
 Maybe-Replace-Readme
 Write-Host "[step] Maybe-Replace-Readme completed"
+function Update-PyprojectName {
+    if (Test-Path 'pyproject.toml') {
+        $toml = Get-Content -Raw -Encoding UTF8 'pyproject.toml'
+        $toml = [regex]::Replace($toml, '(?m)^name\s*=\s*"[^"]*"', "name = `"$Repo`"")
+        Write-Utf8NoBomLF -Path 'pyproject.toml' -Content $toml
+        Write-Host "[setup] Updated pyproject.toml name to '$Repo'."
+    }
+}
+
+Update-PyprojectName
+Write-Host "[step] Update-PyprojectName completed"
 Setup-UvEnvironment
 Write-Host "[step] Setup-UvEnvironment completed"
 Configure-ProjectType

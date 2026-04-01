@@ -453,22 +453,20 @@ configure_project_type() {
 	if [[ "$PROJECT_TYPE" == "python" ]]; then
 		echo "[setup] Configuring for Python-only project..."
 
-		# Update pyproject.toml: set name and remove jupyter/nbstripout deps
+		# Remove jupyter/nbstripout deps from pyproject.toml
 		if [[ -f pyproject.toml ]]; then
 			if sed --version >/dev/null 2>&1; then
 				# GNU sed
-				sed -i "s@^name = \".*\"@name = \"${REPO_NAME}\"@" pyproject.toml
 				sed -i '/[[:space:]]*"ipykernel[^"]*",\{0,1\}/d' pyproject.toml
 				sed -i '/[[:space:]]*"nbstripout[^"]*",\{0,1\}/d' pyproject.toml
 				sed -i '/^\[dependency-groups\]/,/^$/d' pyproject.toml
 			else
 				# BSD sed (macOS)
-				sed -i '' "s@^name = \".*\"@name = \"${REPO_NAME}\"@" pyproject.toml
 				sed -i '' '/[[:space:]]*"ipykernel[^"]*",\{0,1\}/d' pyproject.toml
 				sed -i '' '/[[:space:]]*"nbstripout[^"]*",\{0,1\}/d' pyproject.toml
 				sed -i '' '/^\[dependency-groups\]/,/^$/d' pyproject.toml
 			fi
-			echo "[setup] Updated pyproject.toml (removed ipykernel, nbstripout; set name)."
+			echo "[setup] Updated pyproject.toml (removed ipykernel, nbstripout)."
 		fi
 
 		# Remove nbstripout filter from .gitattributes
@@ -513,16 +511,6 @@ configure_project_type() {
 		cp dl-util/demo_analysis.ipynb.template src/data_analysis.ipynb
 		echo "[setup] Created src/data_analysis.ipynb from template."
 
-		# Update pyproject.toml name unconditionally
-		if [[ -f pyproject.toml ]]; then
-			if sed --version >/dev/null 2>&1; then
-				sed -i "s@^name = \".*\"@name = \"${REPO_NAME}\"@" pyproject.toml
-			else
-				sed -i '' "s@^name = \".*\"@name = \"${REPO_NAME}\"@" pyproject.toml
-			fi
-			echo "[setup] Updated pyproject.toml name to '${REPO_NAME}'."
-		fi
-
 		# Install nbstripout on this machine so the author's git history stays clean too
 		if command -v uv >/dev/null 2>&1; then
 			uv run nbstripout --install || echo "[warn] nbstripout install skipped."
@@ -537,6 +525,17 @@ configure_project_type() {
 	fi
 }
 
+update_pyproject_name() {
+	if [[ -f pyproject.toml ]]; then
+		if sed --version >/dev/null 2>&1; then
+			sed -i "s@^name = \".*\"@name = \"${REPO_NAME}\"@" pyproject.toml
+		else
+			sed -i '' "s@^name = \".*\"@name = \"${REPO_NAME}\"@" pyproject.toml
+		fi
+		echo "[setup] Updated pyproject.toml name to '${REPO_NAME}'."
+	fi
+}
+
 ensure_files_exist
 update_dl_sh
 update_dl_ps1
@@ -544,6 +543,7 @@ write_repo_url_txt
 compute_sha
 rewrite_index_html
 maybe_replace_readme
+update_pyproject_name
 setup_uv_environment
 configure_project_type
 write_state
