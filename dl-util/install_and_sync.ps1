@@ -88,6 +88,7 @@ if (-not $uv) {
         try {
             Write-Host "[setup] Installing nbstripout git filter..."
             uv run nbstripout --install
+            uv run nbstripout --drop-empty-cells
         } catch {
             Write-Warning "[warn] nbstripout git filter installation skipped."
         }

@@ -439,6 +439,7 @@ function Configure-ProjectType {
         if ($uv) {
             try {
                 uv run nbstripout --install
+                uv run nbstripout --drop-empty-cells
                 git config filter.nbstripout.extrakeys 'metadata.kernelspec'
                 Write-Host "[setup] nbstripout git filter installed."
             } catch {
