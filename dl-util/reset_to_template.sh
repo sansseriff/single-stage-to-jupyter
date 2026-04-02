@@ -42,14 +42,14 @@ for f in pyproject.toml .gitattributes dl-util/index.html; do
     fi
 done
 
-# Remove generated src/ files (both are produced by initialize_repo from dl-util templates)
-if [[ -f src/demo_analysis.py ]]; then
-    rm -f src/demo_analysis.py
-    echo "  ✓ Removed src/demo_analysis.py"
+# Clear all contents of src/ and restore .gitkeep
+if [[ -d src ]]; then
+    find src -mindepth 1 -delete
+    echo "  ✓ Cleared src/ contents"
 fi
-if [[ -f src/data_analysis.ipynb ]]; then
-    rm -f src/data_analysis.ipynb
-    echo "  ✓ Removed src/data_analysis.ipynb"
+if [[ ! -f src/.gitkeep ]]; then
+    touch src/.gitkeep
+    echo "  ✓ Added src/.gitkeep"
 fi
 
 # Uninstall nbstripout git filter if it was configured by initialize_repo

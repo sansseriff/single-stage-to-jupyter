@@ -57,7 +57,7 @@ if [ "$PROJECT_TYPE" = "jupyter" ]; then
 
     echo "[setup] Installing nbstripout git filter..."
     uv run nbstripout --install || echo "[warn] nbstripout git filter installation skipped."
-    uv run nbstripout --drop-empty-cells || echo "[warn] nbstripout --drop-empty-cells skipped."
+    git config filter.nbstripout.clean "$(git config filter.nbstripout.clean) --drop-empty-cells" || echo "[warn] nbstripout --drop-empty-cells skipped."
     git config filter.nbstripout.extrakeys 'metadata.kernelspec' || echo "[warn] nbstripout extrakeys config skipped."
 
     # Prompt control: honor START_JUPYTER if provided, otherwise try prompting via /dev/tty

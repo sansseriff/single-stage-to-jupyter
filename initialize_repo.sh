@@ -514,7 +514,7 @@ configure_project_type() {
 		# Install nbstripout on this machine so the author's git history stays clean too
 		if command -v uv >/dev/null 2>&1; then
 			uv run nbstripout --install || echo "[warn] nbstripout install skipped."
-			uv run nbstripout --drop-empty-cells || echo "[warn] nbstripout --drop-empty-cells skipped."
+			git config filter.nbstripout.clean "$(git config filter.nbstripout.clean) --drop-empty-cells" || echo "[warn] nbstripout --drop-empty-cells skipped."
 			git config filter.nbstripout.extrakeys 'metadata.kernelspec' || true
 			echo "[setup] nbstripout git filter installed."
 		else

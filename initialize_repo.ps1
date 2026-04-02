@@ -439,7 +439,8 @@ function Configure-ProjectType {
         if ($uv) {
             try {
                 uv run nbstripout --install
-                uv run nbstripout --drop-empty-cells
+                $cleanCmd = git config filter.nbstripout.clean
+                git config filter.nbstripout.clean "$cleanCmd --drop-empty-cells"
                 git config filter.nbstripout.extrakeys 'metadata.kernelspec'
                 Write-Host "[setup] nbstripout git filter installed."
             } catch {
